@@ -97,6 +97,23 @@ Todos los datos provienen de APIs públicas de Renfe (no se requiere autenticaci
 | 25 | AVE TGV |
 | 28 | AVLO |
 
+## ⚠️ Solución Rápida: "DESCONECTADO"
+
+Si ves el estado **DESCONECTADO**, es un problema de CORS. **Solución**:
+
+1. Abre [app.js](app.js)
+2. Busca la línea 2 (CONFIG)
+3. Asegúrate de que `CORS_PROXY` tenga este valor:
+   ```javascript
+   CORS_PROXY: 'https://corsproxy.io/?',
+   ```
+4. Guarda y recarga la página
+
+El proxy CORS ya debería estar configurado. Si sigue sin funcionar:
+- Abre la consola del navegador (F12 → Consola)
+- Busca mensajes de error en rojo
+- Intenta con otro proxy: `'https://api.allorigins.win/raw?url='`
+
 ## Empezando
 
 ### Desarrollo Local

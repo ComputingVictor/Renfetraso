@@ -1,8 +1,8 @@
-// Configuration
+// Configuración
 const CONFIG = {
-    CORS_PROXY: '', // Leave empty if CORS works, otherwise use: 'https://corsproxy.io/?'
-    POLL_INTERVAL: 15000, // 15 seconds
-    API_TIMEOUT: 30000, // 30 seconds before status goes grey
+    CORS_PROXY: 'https://corsproxy.io/?', // Proxy CORS para evitar bloqueos del navegador
+    POLL_INTERVAL: 15000, // 15 segundos
+    API_TIMEOUT: 30000, // 30 segundos antes de que el estado cambie a desconectado
     FLEET_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json',
     ROUTES_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json',
     STATIONS_URL: 'https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson'
@@ -43,17 +43,24 @@ const state = {
 
 async function fetchData(url) {
     const fullUrl = CONFIG.CORS_PROXY + url + '?v=' + Date.now();
+    console.log('Obteniendo datos de:', fullUrl);
     const response = await fetch(fullUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     return response.json();
 }
 
 async function updateData() {
     try {
+        console.log('Iniciando actualización de datos...');
         const [fleetData, routesData] = await Promise.all([
             fetchData(CONFIG.FLEET_URL),
             fetchData(CONFIG.ROUTES_URL)
         ]);
+
+        console.log('Datos obtenidos:', {
+            trenes: fleetData?.length || 0,
+            rutas: routesData?.length || 0
+        });
 
         state.fleetData = fleetData;
         state.routesData = routesData;
@@ -65,7 +72,7 @@ async function updateData() {
         updateAllSections();
         checkWatchedTrains();
     } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error('Error al obtener datos:', error);
         updateStatusIndicator(false);
     }
 }
