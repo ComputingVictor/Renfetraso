@@ -110,13 +110,19 @@ async function updateData() {
             fetchDataWithFallback(CONFIG.ROUTES_URL)
         ]);
 
-        console.log('Datos obtenidos:', {
-            trenes: fleetData?.length || 0,
-            rutas: routesData?.length || 0
+        // La API de Renfe devuelve objetos con estructura {fechaActualizacion: "...", trenes: [...]}
+        // Extraer el array de la propiedad 'trenes'
+        const actualFleetData = Array.isArray(fleetData) ? fleetData : (fleetData?.trenes || []);
+        const actualRoutesData = Array.isArray(routesData) ? routesData : (routesData?.trenes || []);
+
+        console.log('✅ Datos obtenidos:', {
+            trenes: actualFleetData.length,
+            rutas: actualRoutesData.length,
+            actualizacion: fleetData?.fechaActualizacion || 'N/D'
         });
 
-        state.fleetData = fleetData;
-        state.routesData = routesData;
+        state.fleetData = actualFleetData;
+        state.routesData = actualRoutesData;
         state.lastFetchTime = Date.now();
 
         updateStatusIndicator(true);

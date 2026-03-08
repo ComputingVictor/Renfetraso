@@ -77,6 +77,8 @@ Los datos en tiempo real provienen de APIs públicas de Renfe (no se requiere au
    - Origen: `https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson`
    - Las estaciones son datos estáticos, no requieren actualización constante
 
+**Nota técnica**: Las APIs 1 y 2 devuelven objetos con estructura `{fechaActualizacion: "...", trenes: [...]}`. El código extrae automáticamente el array `trenes`.
+
 **Atribución**: Datos proporcionados por Renfe Operadora. Este es un panel no oficial y no está afiliado con Renfe.
 
 ## Referencia de Tipos de Tren
