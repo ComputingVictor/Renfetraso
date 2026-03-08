@@ -60,22 +60,22 @@ Un panel de monitoreo en tiempo real para los servicios de larga distancia de Re
 
 ## Fuentes de Datos
 
-Todos los datos provienen de APIs públicas de Renfe (no se requiere autenticación):
+Los datos en tiempo real provienen de APIs públicas de Renfe (no se requiere autenticación):
 
 1. **Posiciones de la Flota** (consultado cada 15s):
    ```
    GET https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json?v={timestamp}
    ```
 
-2. **Rutas de Trenes y Estaciones**:
+2. **Rutas de Trenes y Estaciones** (consultado cada 15s):
    ```
    GET https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json?v={timestamp}
    ```
 
-3. **GeoJSON de Estaciones** (estático):
-   ```
-   GET https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson
-   ```
+3. **GeoJSON de Estaciones** (archivo local):
+   - `./estaciones.geojson` - Descargado de Renfe y servido localmente
+   - Origen: `https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson`
+   - Las estaciones son datos estáticos, no requieren actualización constante
 
 **Atribución**: Datos proporcionados por Renfe Operadora. Este es un panel no oficial y no está afiliado con Renfe.
 

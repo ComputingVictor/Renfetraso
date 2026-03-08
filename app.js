@@ -13,7 +13,7 @@ const CONFIG = {
     API_TIMEOUT: 30000, // 30 segundos antes de que el estado cambie a desconectado
     FLEET_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json',
     ROUTES_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json',
-    STATIONS_URL: 'https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson'
+    STATIONS_URL: './estaciones.geojson' // Archivo local estático (las estaciones no cambian)
 };
 
 // Train type mapping
@@ -132,7 +132,13 @@ async function updateData() {
 
 async function loadStationsData() {
     try {
-        state.stationsData = await fetchDataWithFallback(CONFIG.STATIONS_URL);
+        // Archivo local, no necesita proxy CORS
+        const response = await fetch(CONFIG.STATIONS_URL);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        state.stationsData = await response.json();
+        console.log('✅ Estaciones cargadas desde archivo local');
     } catch (error) {
         console.error('Failed to load stations:', error);
     }
