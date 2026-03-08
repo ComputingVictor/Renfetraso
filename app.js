@@ -17,18 +17,57 @@ const CONFIG = {
     ON_TIME_THRESHOLD: 5 // Margen de tolerancia en minutos para considerar un tren "a tiempo"
 };
 
-// Train type mapping
+// Train type mapping (códigos de producto de Renfe)
 const TRAIN_TYPES = {
-    2: 'AVE', 3: 'Avant', 4: 'Talgo', 7: 'Diurno', 8: 'Estrella',
-    9: 'Tren Hotel', 11: 'Alvia', 13: 'Intercity', 16: 'Media Distancia',
-    18: 'Regional', 19: 'Regional Express', 25: 'AVE TGV', 28: 'AVLO'
+    1: 'Largo Recorrido',
+    2: 'AVE',
+    3: 'Avant',
+    4: 'Talgo',
+    5: 'Altaria',
+    6: 'Euromed',
+    7: 'Diurno',
+    8: 'Estrella',
+    9: 'Tren Hotel',
+    10: 'Trenhotel',
+    11: 'Alvia',
+    12: 'Arco',
+    13: 'Intercity',
+    14: 'Talgo 200',
+    15: 'MD',
+    16: 'Media Distancia',
+    17: 'Cercanías',
+    18: 'Regional',
+    19: 'Regional Express',
+    20: 'Alaris',
+    25: 'AVE TGV',
+    28: 'AVLO',
+    29: 'Trenhotel Lusitania'
 };
 
 const TRAIN_TYPE_COLORS = {
-    'AVE': '#e74c3c', 'Avant': '#3498db', 'Talgo': '#2ecc71', 'Diurno': '#f39c12',
-    'Estrella': '#9b59b6', 'Tren Hotel': '#1abc9c', 'Alvia': '#e67e22',
-    'Intercity': '#34495e', 'Media Distancia': '#16a085', 'Regional': '#27ae60',
-    'Regional Express': '#2980b9', 'AVE TGV': '#c0392b', 'AVLO': '#8e44ad'
+    'AVE': '#e74c3c',
+    'Avant': '#3498db',
+    'Talgo': '#2ecc71',
+    'Diurno': '#f39c12',
+    'Estrella': '#9b59b6',
+    'Tren Hotel': '#1abc9c',
+    'Alvia': '#e67e22',
+    'Intercity': '#34495e',
+    'Media Distancia': '#16a085',
+    'Regional': '#27ae60',
+    'Regional Express': '#2980b9',
+    'AVE TGV': '#c0392b',
+    'AVLO': '#8e44ad',
+    'Largo Recorrido': '#95a5a6',
+    'Altaria': '#d35400',
+    'Euromed': '#2c3e50',
+    'Trenhotel': '#16a085',
+    'Arco': '#7f8c8d',
+    'Talgo 200': '#27ae60',
+    'MD': '#16a085',
+    'Cercanías': '#95a5a6',
+    'Alaris': '#e67e22',
+    'Trenhotel Lusitania': '#1abc9c'
 };
 
 // Global state
@@ -296,6 +335,19 @@ function loadTimeSeriesFromStorage() {
         const data = localStorage.getItem('renfe_timeseries');
         if (data) {
             state.timeSeriesData = JSON.parse(data);
+
+            // Migración: Eliminar datos con tipos "Unknown" antiguos
+            // Si hay muchos "Unknown", probablemente son datos viejos con códigos no mapeados
+            const unknownCount = state.timeSeriesData.filter(d =>
+                Object.keys(d.byType).includes('Unknown')
+            ).length;
+
+            // Si más del 10% de los datos tienen "Unknown", limpiar el historial
+            if (unknownCount > state.timeSeriesData.length * 0.1) {
+                console.log('🔄 Limpiando datos históricos con tipos no mapeados');
+                state.timeSeriesData = [];
+                localStorage.removeItem('renfe_timeseries');
+            }
         }
     } catch (e) {
         console.warn('Failed to load from localStorage:', e);
