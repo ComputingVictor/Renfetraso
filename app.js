@@ -1,6 +1,6 @@
 // Configuración
 const CONFIG = {
-    CORS_PROXY: 'https://corsproxy.io/?', // Proxy CORS para evitar bloqueos del navegador
+    CORS_PROXY: 'https://api.allorigins.win/raw?url=', // Proxy CORS para evitar bloqueos del navegador
     POLL_INTERVAL: 15000, // 15 segundos
     API_TIMEOUT: 30000, // 30 segundos antes de que el estado cambie a desconectado
     FLEET_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json',
@@ -42,10 +42,17 @@ const state = {
 // ============================================================================
 
 async function fetchData(url) {
-    const fullUrl = CONFIG.CORS_PROXY + url + '?v=' + Date.now();
+    // Añadir cache-busting parameter
+    const urlWithCache = url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+
+    // Construir URL completa con proxy
+    const fullUrl = CONFIG.CORS_PROXY + encodeURIComponent(urlWithCache);
+
     console.log('Obteniendo datos de:', fullUrl);
+
     const response = await fetch(fullUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
     return response.json();
 }
 

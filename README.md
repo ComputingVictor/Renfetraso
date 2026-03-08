@@ -99,20 +99,64 @@ Todos los datos provienen de APIs públicas de Renfe (no se requiere autenticaci
 
 ## ⚠️ Solución Rápida: "DESCONECTADO"
 
-Si ves el estado **DESCONECTADO**, es un problema de CORS. **Solución**:
+Si ves el estado **DESCONECTADO**, es un problema de CORS (Cross-Origin Resource Sharing).
 
-1. Abre [app.js](app.js)
-2. Busca la línea 2 (CONFIG)
-3. Asegúrate de que `CORS_PROXY` tenga este valor:
-   ```javascript
-   CORS_PROXY: 'https://corsproxy.io/?',
+### ¿Qué está pasando?
+
+El servidor de Renfe **bloquea las peticiones directas** desde otros dominios por seguridad. Necesitamos usar un **proxy CORS**.
+
+### ✅ Solución Inmediata
+
+El proyecto ya está configurado con el proxy **AllOrigins**, que es el más confiable:
+
+```javascript
+CORS_PROXY: 'https://api.allorigins.win/raw?url='
+```
+
+**Si aún no funciona**, prueba estos pasos:
+
+1. **Abre la consola del navegador** (F12 → Consola)
+2. **Busca el error exacto**. Deberías ver algo como:
    ```
-4. Guarda y recarga la página
+   Obteniendo datos de: https://api.allorigins.win/raw?url=...
+   ```
 
-El proxy CORS ya debería estar configurado. Si sigue sin funcionar:
-- Abre la consola del navegador (F12 → Consola)
-- Busca mensajes de error en rojo
-- Intenta con otro proxy: `'https://api.allorigins.win/raw?url='`
+3. **Si ves "Failed to fetch" o error de red**:
+   - El proxy AllOrigins puede estar temporalmente caído
+   - Prueba con otro proxy (ver opciones abajo)
+
+### 🔄 Proxies CORS Alternativos
+
+Edita [app.js](app.js) línea 3 y prueba estos en orden:
+
+**Opción 1 - AllOrigins** (configurado por defecto, más estable):
+```javascript
+CORS_PROXY: 'https://api.allorigins.win/raw?url='
+```
+
+**Opción 2 - CorsProxy.io** (más rápido pero menos confiable):
+```javascript
+CORS_PROXY: 'https://corsproxy.io/?'
+```
+
+**Opción 3 - CodeTabs**:
+```javascript
+CORS_PROXY: 'https://api.codetabs.com/v1/proxy?quest='
+```
+
+**Opción 4 - Sin proxy** (solo si Renfe habilita CORS públicamente):
+```javascript
+CORS_PROXY: ''
+```
+
+### 🚀 Solución Avanzada: Múltiples Proxies con Fallback
+
+Para tener máxima confiabilidad, usa el archivo [config-alternativo.js](config-alternativo.js) que prueba automáticamente múltiples proxies hasta encontrar uno que funcione.
+
+**Pasos**:
+1. Abre [config-alternativo.js](config-alternativo.js)
+2. Sigue las instrucciones al final del archivo
+3. El sistema probará automáticamente 4 proxies diferentes
 
 ## Empezando
 
