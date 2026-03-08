@@ -42,7 +42,8 @@ const state = {
     mapMode: 'heatmap', // 'heatmap' or 'markers'
     map: null,
     charts: {},
-    previousDelays: {} // For notification tracking
+    previousDelays: {}, // For notification tracking
+    initialLoadComplete: false
 };
 
 // ============================================================================
@@ -130,6 +131,18 @@ async function updateData() {
         processTimeSeriesData();
         updateAllSections();
         checkWatchedTrains();
+
+        // Hide loading overlay on first successful load
+        if (!state.initialLoadComplete) {
+            state.initialLoadComplete = true;
+            setTimeout(() => {
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    setTimeout(() => overlay.remove(), 500);
+                }
+            }, 500);
+        }
     } catch (error) {
         console.error('Error al obtener datos:', error);
         updateStatusIndicator(false);
@@ -269,6 +282,9 @@ function updatePunctualityDashboard() {
     const maxDelay = delays.length > 0 ? Math.max(...delays) : 0;
     document.getElementById('maxDelay').textContent = maxDelay;
 
+    // Top 5 most delayed trains
+    updateTopDelayedTrains(trains);
+
     // Delay distribution chart
     updateDelayDistributionChart(delays);
 
@@ -277,6 +293,37 @@ function updatePunctualityDashboard() {
 
     // Delay by corridor chart
     updateDelayByCorridorChart(trains);
+}
+
+function updateTopDelayedTrains(trains) {
+    const container = document.getElementById('topDelayedTrains');
+
+    // Sort by delay descending and take top 5
+    const topDelayed = trains
+        .filter(t => parseInt(t.ultRetraso || 0) > 0)
+        .sort((a, b) => parseInt(b.ultRetraso || 0) - parseInt(a.ultRetraso || 0))
+        .slice(0, 5);
+
+    if (topDelayed.length === 0) {
+        container.innerHTML = '<div class="no-data">🎉 ¡No hay trenes retrasados!</div>';
+        return;
+    }
+
+    container.innerHTML = topDelayed.map((train, index) => {
+        const delay = parseInt(train.ultRetraso || 0);
+        const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        return `
+            <div class="top-delayed-item">
+                <div class="delayed-rank">${medals[index]}</div>
+                <div class="delayed-info">
+                    <div class="delayed-train-id">Tren ${train.codComercial}</div>
+                    <div class="delayed-corridor">${train.desCorridor || 'Ruta no disponible'}</div>
+                </div>
+                <div class="delayed-type">${TRAIN_TYPES[train.codProduct] || 'Desconocido'}</div>
+                <div class="delayed-time">+${delay} min</div>
+            </div>
+        `;
+    }).join('');
 }
 
 function updateDelayDistributionChart(delays) {
@@ -647,15 +694,36 @@ function updateMap() {
         // Add click handler for popups
         state.map.on('click', 'trains-markers', (e) => {
             const props = e.features[0].properties;
+            const delayEmoji = props.delay === 0 ? '✅' : props.delay <= 15 ? '⚠️' : '🔴';
+            const delayClass = props.delay === 0 ? 'on-time' : props.delay <= 30 ? 'minor-delay' : 'major-delay';
+
             const html = `
-                <strong>Tren ${props.trainId}</strong><br>
-                Tipo: ${props.type}<br>
-                Corredor: ${props.corridor}<br>
-                Retraso: ${props.delay} min<br>
-                Último GPS: ${new Date(props.time * 1000).toLocaleTimeString('es-ES')}<br>
-                Material Rodante: ${props.mat || 'N/D'}
+                <div class="map-popup">
+                    <div class="popup-header">
+                        <strong>${delayEmoji} Tren ${props.trainId}</strong>
+                        <span class="popup-type">${props.type}</span>
+                    </div>
+                    <div class="popup-body">
+                        <div class="popup-row">
+                            <span class="popup-label">📍 Ruta:</span>
+                            <span>${props.corridor}</span>
+                        </div>
+                        <div class="popup-row ${delayClass}">
+                            <span class="popup-label">⏱️ Retraso:</span>
+                            <span><strong>${props.delay} min</strong></span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">🕐 Última ubicación:</span>
+                            <span>${new Date(props.time * 1000).toLocaleTimeString('es-ES')}</span>
+                        </div>
+                        ${props.mat ? `<div class="popup-row">
+                            <span class="popup-label">🚂 Material:</span>
+                            <span>${props.mat}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
             `;
-            new maplibregl.Popup()
+            new maplibregl.Popup({ className: 'enhanced-popup' })
                 .setLngLat(e.lngLat)
                 .setHTML(html)
                 .addTo(state.map);
@@ -924,6 +992,26 @@ function updateRollingStock() {
 // ============================================================================
 
 function setupEventListeners() {
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = themeToggle.querySelector('.theme-icon');
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    themeIcon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
+
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        themeIcon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+
+        console.log(`🎨 Tema cambiado a: ${newTheme}`);
+    });
+
     // Navigation
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -950,6 +1038,8 @@ function setupEventListeners() {
         });
         updateTimeSeriesChart();
     });
+
+    document.getElementById('exportCSV').addEventListener('click', exportTimeSeriesCSV);
 
     document.getElementById('clearHistory').addEventListener('click', () => {
         if (confirm('¿Borrar todo el historial de series temporales?')) {
@@ -983,6 +1073,53 @@ function updateAllSections() {
 }
 
 // ============================================================================
+// DATA EXPORT
+// ============================================================================
+
+function exportTimeSeriesCSV() {
+    if (state.timeSeriesData.length === 0) {
+        alert('No hay datos para exportar');
+        return;
+    }
+
+    // Get all unique train types
+    const allTypes = new Set();
+    state.timeSeriesData.forEach(dp => {
+        Object.keys(dp.byType).forEach(type => allTypes.add(type));
+    });
+    const types = Array.from(allTypes).sort();
+
+    // CSV header
+    let csv = 'Timestamp,Fecha,Hora,Retraso Promedio,' + types.join(',') + '\n';
+
+    // CSV rows
+    state.timeSeriesData.forEach(dp => {
+        const date = new Date(dp.timestamp);
+        const dateStr = date.toLocaleDateString('es-ES');
+        const timeStr = date.toLocaleTimeString('es-ES');
+        const typeDelays = types.map(type => (dp.byType[type] || 0).toFixed(2));
+
+        csv += `${dp.timestamp},${dateStr},${timeStr},${dp.avgDelay.toFixed(2)},${typeDelays.join(',')}\n`;
+    });
+
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    const filename = `renfe_delays_${new Date().toISOString().split('T')[0]}.csv`;
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log(`📊 Exportados ${state.timeSeriesData.length} puntos de datos a ${filename}`);
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -992,4 +1129,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStationsData();
     initMap();
     startPolling();
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('✅ Service Worker registrado:', reg.scope))
+            .catch(err => console.error('❌ Error al registrar Service Worker:', err));
+    }
 });

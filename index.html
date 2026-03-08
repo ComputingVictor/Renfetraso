@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel en Tiempo Real de Renfe</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚄</text></svg>">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="style.css">
     <!-- MapLibre GL JS -->
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
@@ -14,6 +19,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
+    <!-- Loading Indicator -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="train-icon">🚄</div>
+            <div class="loading-text">Cargando datos de Renfe...</div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Navegación Lateral -->
         <nav class="sidebar">
@@ -24,6 +40,9 @@
                     <span id="statusText">CONECTANDO</span>
                 </div>
                 <div class="last-update" id="lastUpdate">Última actualización: Nunca</div>
+                <button id="themeToggle" class="theme-toggle" title="Cambiar tema">
+                    <span class="theme-icon">🌙</span>
+                </button>
             </div>
             <ul class="nav-menu">
                 <li><a href="#dashboard" class="nav-link active" data-section="dashboard">📊 Puntualidad</a></li>
@@ -59,6 +78,14 @@
                     </div>
                 </div>
 
+                <!-- Top 5 Trenes Más Retrasados -->
+                <div class="top-delayed-widget">
+                    <h3>🔴 Top 5 Trenes Más Retrasados Ahora</h3>
+                    <div id="topDelayedTrains" class="top-delayed-list">
+                        <div class="no-data">Cargando datos...</div>
+                    </div>
+                </div>
+
                 <div class="charts-grid">
                     <div class="chart-container">
                         <h3>Distribución de Retrasos</h3>
@@ -85,6 +112,7 @@
                         <input type="checkbox" id="toggleAllTypes" checked> Alternar Todos los Tipos
                     </label>
                     <div id="typeToggles"></div>
+                    <button id="exportCSV" class="btn-primary">📊 Exportar CSV</button>
                     <button id="clearHistory" class="btn-secondary">Borrar Historial</button>
                 </div>
 

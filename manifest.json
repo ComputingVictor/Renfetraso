@@ -1,0 +1,20 @@
+{
+  "name": "Panel en Tiempo Real de Renfe",
+  "short_name": "Renfe Live",
+  "description": "Monitoreo en tiempo real de trenes de larga distancia de Renfe",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e27",
+  "theme_color": "#3498db",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚄</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "utilities"],
+  "lang": "es"
+}
