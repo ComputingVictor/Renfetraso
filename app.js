@@ -36,6 +36,7 @@ const state = {
     fleetData: [],
     routesData: [],
     stationsData: null,
+    stationMap: {}, // Map of station codes to names
     timeSeriesData: [],
     watchedTrains: new Set(),
     lastFetchTime: null,
@@ -157,11 +158,50 @@ async function loadStationsData() {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        state.stationsData = await response.json();
-        console.log('✅ Estaciones cargadas desde archivo local');
+        const geojson = await response.json();
+        state.stationsData = geojson;
+
+        // Create station code to name mapping for faster lookups
+        state.stationMap = {};
+        if (geojson.features) {
+            geojson.features.forEach(feature => {
+                const code = feature.properties.CODIGO;
+                const name = feature.properties.NOMBRE;
+                if (code && name) {
+                    state.stationMap[code] = name;
+                }
+            });
+        }
+
+        console.log('✅ Estaciones cargadas desde archivo local:', Object.keys(state.stationMap).length, 'estaciones');
     } catch (error) {
         console.error('Failed to load stations:', error);
     }
+}
+
+// Helper function to get proper corridor name
+function getCorridorName(train) {
+    const corridor = train.desCorridor || '';
+
+    // If corridor looks like a code (LMDxxxx or similar), construct from origin/destination
+    if (!corridor || corridor.match(/^[A-Z]{2,3}\d+/)) {
+        const originCode = parseInt(train.codOrigen);
+        const destCode = parseInt(train.codDestino);
+
+        if (state.stationMap && originCode && destCode) {
+            const originName = state.stationMap[originCode];
+            const destName = state.stationMap[destCode];
+
+            if (originName && destName) {
+                return `${originName} - ${destName}`;
+            }
+        }
+
+        // Fallback if we can't find the stations
+        return corridor || 'Ruta no disponible';
+    }
+
+    return corridor;
 }
 
 function updateStatusIndicator(success) {
@@ -321,7 +361,7 @@ function updateTopDelayedTrains(trains) {
                 <div class="delayed-rank" style="color: ${rankColors[index]}">${ranks[index]}</div>
                 <div class="delayed-info">
                     <div class="delayed-train-id">Tren ${train.codComercial}</div>
-                    <div class="delayed-corridor">${train.desCorridor || 'Ruta no disponible'}</div>
+                    <div class="delayed-corridor">${getCorridorName(train)}</div>
                 </div>
                 <div class="delayed-type">${TRAIN_TYPES[train.codProduct] || 'Desconocido'}</div>
                 <div class="delayed-time">+${delay} min</div>
@@ -435,7 +475,7 @@ function updateDelayByTypeChart(trains) {
 function updateDelayByCorridorChart(trains) {
     const delaysByCorridor = {};
     trains.forEach(train => {
-        const corridor = train.desCorridor || 'Unknown';
+        const corridor = getCorridorName(train);
         if (!delaysByCorridor[corridor]) delaysByCorridor[corridor] = [];
         delaysByCorridor[corridor].push(parseInt(train.ultRetraso || 0));
     });
@@ -676,7 +716,7 @@ function updateMap() {
             properties: {
                 trainId: train.codComercial,
                 type: TRAIN_TYPES[train.codProduct] || 'Unknown',
-                corridor: train.desCorridor || 'Unknown',
+                corridor: getCorridorName(train),
                 delay: parseInt(train.ultRetraso || 0),
                 time: train.time,
                 mat: train.mat || '',
@@ -801,7 +841,7 @@ function updateDelayedTrains() {
         const delay = parseInt(train.ultRetraso || 0);
         if (delay < delayThreshold) return false;
 
-        const corridor = (train.desCorridor || '').toLowerCase();
+        const corridor = getCorridorName(train).toLowerCase();
         if (corridorFilter && !corridor.includes(corridorFilter)) return false;
 
         if (typeFilter) {
@@ -825,7 +865,7 @@ function updateDelayedTrains() {
             <tr class="${rowClass}">
                 <td>${train.codComercial}</td>
                 <td>${TRAIN_TYPES[train.codProduct] || 'Desconocido'}</td>
-                <td>${train.desCorridor || 'N/D'}</td>
+                <td>${getCorridorName(train)}</td>
                 <td>${delay}</td>
                 <td>${new Date(train.time * 1000).toLocaleTimeString('es-ES')}</td>
                 <td>${train.mat || 'N/D'}</td>
@@ -880,7 +920,7 @@ function updateWatchlist() {
         return `
             <div class="watch-item">
                 <strong>${train.codComercial}</strong> - ${TRAIN_TYPES[train.codProduct] || 'Desconocido'}<br>
-                ${train.desCorridor || 'N/D'}<br>
+                ${getCorridorName(train)}<br>
                 Retraso: <span class="delay-value">${delay} min</span>
             </div>
         `;
@@ -1033,7 +1073,62 @@ function updateRollingStock() {
 // UI EVENT HANDLERS
 // ============================================================================
 
+// Mobile menu functions (global scope for use in navigation)
+let closeMobileMenu;
+let openMobileMenu;
+
 function setupEventListeners() {
+    // Mobile menu toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+
+    // Define mobile menu functions
+    openMobileMenu = () => {
+        if (sidebar && mobileMenuOverlay && mobileMenuToggle) {
+            sidebar.classList.add('open');
+            mobileMenuOverlay.classList.add('active');
+            mobileMenuToggle.querySelector('.material-symbols-outlined').textContent = 'close';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+        }
+    };
+
+    closeMobileMenu = () => {
+        if (sidebar && mobileMenuOverlay && mobileMenuToggle) {
+            sidebar.classList.remove('open');
+            mobileMenuOverlay.classList.remove('active');
+            mobileMenuToggle.querySelector('.material-symbols-outlined').textContent = 'menu';
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+    };
+
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => {
+            const isOpen = sidebar.classList.contains('open');
+
+            if (isOpen) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        });
+
+        // Close sidebar when clicking overlay
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                sidebar.classList.contains('open') &&
+                !sidebar.contains(e.target) &&
+                !mobileMenuToggle.contains(e.target)) {
+                closeMobileMenu();
+            }
+        });
+    }
+
     // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = themeToggle.querySelector('.theme-icon');
@@ -1065,6 +1160,11 @@ function setupEventListeners() {
 
             e.target.classList.add('active');
             document.getElementById(section).classList.add('active');
+
+            // Close mobile menu when navigating
+            if (window.innerWidth <= 768 && closeMobileMenu) {
+                closeMobileMenu();
+            }
 
             // Resize map if switching to map section
             if (section === 'map' && state.map) {
@@ -1200,7 +1300,7 @@ function performTrainSearch(query) {
 
         const lastGPS = train.time ? new Date(train.time * 1000).toLocaleString('es-ES') : 'N/A';
         const material = train.mat || 'Desconocido';
-        const corridor = train.desCorridor || 'Ruta desconocida';
+        const corridor = getCorridorName(train);
         const trainType = TRAIN_TYPES[train.codProduct] || 'Tren';
         const trainId = train.codComercial || 'Desconocido';
 
