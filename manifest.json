@@ -1,7 +1,7 @@
 {
-  "name": "Panel en Tiempo Real de Renfe",
-  "short_name": "Renfe Live",
-  "description": "Monitoreo en tiempo real de trenes de larga distancia de Renfe",
+  "name": "Renfe Dashboard",
+  "short_name": "Renfe Dashboard",
+  "description": "Panel de monitoreo en tiempo real de trenes de larga distancia de Renfe",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0e27",

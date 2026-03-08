@@ -268,6 +268,165 @@ h3 {
 }
 
 /* ============================================================================
+   TRAIN SEARCH WIDGET
+   ============================================================================ */
+
+.train-search-widget {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px var(--shadow);
+}
+
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+#trainSearchInput {
+    flex: 1;
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+#trainSearchInput:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.clear-search {
+    position: absolute;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.clear-search:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.search-results {
+    margin-top: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.search-result-item {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--accent-blue);
+    transition: all 0.2s ease;
+}
+
+.search-result-item:last-child {
+    margin-bottom: 0;
+}
+
+.search-result-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 8px var(--shadow);
+}
+
+.search-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.search-train-id {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.search-delay-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.search-delay-badge.on-time {
+    background: var(--accent-green);
+    color: white;
+}
+
+.search-delay-badge.minor-delay {
+    background: var(--accent-yellow);
+    color: #333;
+}
+
+.search-delay-badge.moderate-delay {
+    background: var(--accent-orange);
+    color: white;
+}
+
+.search-delay-badge.major-delay {
+    background: var(--accent-red);
+    color: white;
+}
+
+.search-result-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.search-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-detail-item .material-symbols-outlined {
+    font-size: 1rem;
+    color: var(--accent-blue);
+}
+
+.no-search-results {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+.no-search-results .material-symbols-outlined {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================================================
    CARDS
    ============================================================================ */
 
@@ -426,6 +585,47 @@ h3 {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 8px var(--shadow);
+}
+
+.map-layer-controls {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.layer-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    user-select: none;
+}
+
+.layer-toggle input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.layer-indicator {
+    width: 20px;
+    height: 4px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.layer-indicator.high-speed {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+    box-shadow: 0 0 4px rgba(231, 76, 60, 0.5);
+}
+
+.layer-indicator.conventional {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    box-shadow: 0 0 4px rgba(52, 152, 219, 0.5);
 }
 
 .legend {
@@ -783,6 +983,78 @@ tbody tr.severe-delay:hover {
 }
 
 /* ============================================================================
+   PUNCTUALITY LEGEND
+   ============================================================================ */
+
+.punctuality-legend {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--accent-blue);
+}
+
+.punctuality-legend h4 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.punctuality-legend h4 .material-symbols-outlined {
+    font-size: 1.25rem;
+    color: var(--accent-blue);
+}
+
+.punctuality-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.punctuality-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.punctuality-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    min-width: 70px;
+    text-align: center;
+}
+
+.punctuality-badge.on-time {
+    background: var(--accent-green);
+    color: white;
+}
+
+.punctuality-badge.minor-delay {
+    background: var(--accent-yellow);
+    color: #333;
+}
+
+.punctuality-badge.moderate-delay {
+    background: var(--accent-orange);
+    color: white;
+}
+
+.punctuality-badge.major-delay {
+    background: var(--accent-red);
+    color: white;
+}
+
+.punctuality-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================================================
    TOP DELAYED TRAINS WIDGET
    ============================================================================ */
 
@@ -865,4 +1137,58 @@ tbody tr.severe-delay:hover {
     text-align: center;
     padding: 2rem;
     color: var(--text-secondary);
+}
+
+/* ============================================================================
+   MATERIAL ICONS
+   ============================================================================ */
+
+.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+    vertical-align: middle;
+    font-size: inherit;
+}
+
+h1 .material-symbols-outlined {
+    font-size: 1.5rem;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+h3 .material-symbols-outlined {
+    font-size: 1.2rem;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+.nav-link .material-symbols-outlined {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.popup-label .material-symbols-outlined {
+    font-size: 1rem;
+    margin-right: 0.25rem;
+}
+
+button .material-symbols-outlined {
+    font-size: 1rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+.train-icon .material-symbols-outlined {
+    font-size: 4rem;
+    color: var(--accent-blue);
+}
+
+.no-data .material-symbols-outlined {
+    font-size: 1.5rem;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+    color: var(--accent-green);
 }

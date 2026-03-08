@@ -13,7 +13,8 @@ const CONFIG = {
     API_TIMEOUT: 30000, // 30 segundos antes de que el estado cambie a desconectado
     FLEET_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json',
     ROUTES_URL: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json',
-    STATIONS_URL: './estaciones.geojson' // Archivo local estático (las estaciones no cambian)
+    STATIONS_URL: './estaciones.geojson', // Archivo local estático (las estaciones no cambian)
+    ON_TIME_THRESHOLD: 5 // Margen de tolerancia en minutos para considerar un tren "a tiempo"
 };
 
 // Train type mapping
@@ -272,7 +273,8 @@ function updatePunctualityDashboard() {
     // Summary cards
     document.getElementById('totalTrains').textContent = trains.length;
 
-    const onTime = delays.filter(d => d === 0).length;
+    // Un tren se considera "a tiempo" si tiene menos de CONFIG.ON_TIME_THRESHOLD minutos de retraso
+    const onTime = delays.filter(d => d <= CONFIG.ON_TIME_THRESHOLD).length;
     const onTimePercent = trains.length > 0 ? ((onTime / trains.length) * 100).toFixed(1) : 0;
     document.getElementById('onTimePercent').textContent = onTimePercent + '%';
 
@@ -299,22 +301,24 @@ function updateTopDelayedTrains(trains) {
     const container = document.getElementById('topDelayedTrains');
 
     // Sort by delay descending and take top 5
+    // Only show trains with delays > ON_TIME_THRESHOLD
     const topDelayed = trains
-        .filter(t => parseInt(t.ultRetraso || 0) > 0)
+        .filter(t => parseInt(t.ultRetraso || 0) > CONFIG.ON_TIME_THRESHOLD)
         .sort((a, b) => parseInt(b.ultRetraso || 0) - parseInt(a.ultRetraso || 0))
         .slice(0, 5);
 
     if (topDelayed.length === 0) {
-        container.innerHTML = '<div class="no-data">🎉 ¡No hay trenes retrasados!</div>';
+        container.innerHTML = '<div class="no-data"><span class="material-symbols-outlined">check_circle</span> ¡Todos los trenes están a tiempo!</div>';
         return;
     }
 
     container.innerHTML = topDelayed.map((train, index) => {
         const delay = parseInt(train.ultRetraso || 0);
-        const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        const ranks = ['#1', '#2', '#3', '#4', '#5'];
+        const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#3498db', '#3498db'];
         return `
             <div class="top-delayed-item">
-                <div class="delayed-rank">${medals[index]}</div>
+                <div class="delayed-rank" style="color: ${rankColors[index]}">${ranks[index]}</div>
                 <div class="delayed-info">
                     <div class="delayed-train-id">Tren ${train.codComercial}</div>
                     <div class="delayed-corridor">${train.desCorridor || 'Ruta no disponible'}</div>
@@ -629,6 +633,10 @@ function initMap() {
             state.mapMode === 'heatmap' ? 'Cambiar a Marcadores' : 'Cambiar a Mapa de Calor';
         updateMap();
     });
+
+    // Layer toggle controls
+    document.getElementById('showHighSpeed').addEventListener('change', updateMap);
+    document.getElementById('showConventional').addEventListener('change', updateMap);
 }
 
 function updateMap() {
@@ -639,8 +647,26 @@ function updateMap() {
     if (state.map.getLayer('trains-markers')) state.map.removeLayer('trains-markers');
     if (state.map.getSource('trains')) state.map.removeSource('trains');
 
+    // Get layer visibility settings
+    const showHighSpeed = document.getElementById('showHighSpeed')?.checked ?? true;
+    const showConventional = document.getElementById('showConventional')?.checked ?? true;
+
+    // High-speed train types (AVE, AVLO, AVE TGV)
+    const highSpeedTypes = ['AVE', 'AVLO', 'AVE TGV'];
+
     const features = state.fleetData
-        .filter(t => t.latitud && t.longitud)
+        .filter(t => {
+            if (!t.latitud || !t.longitud) return false;
+
+            const trainType = TRAIN_TYPES[t.codProduct] || '';
+            const isHighSpeed = highSpeedTypes.includes(trainType);
+
+            // Filter based on layer selection
+            if (isHighSpeed && !showHighSpeed) return false;
+            if (!isHighSpeed && !showConventional) return false;
+
+            return true;
+        })
         .map(train => ({
             type: 'Feature',
             geometry: {
@@ -654,7 +680,8 @@ function updateMap() {
                 delay: parseInt(train.ultRetraso || 0),
                 time: train.time,
                 mat: train.mat || '',
-                delayColor: getDelayColor(parseInt(train.ultRetraso || 0))
+                delayColor: getDelayColor(parseInt(train.ultRetraso || 0)),
+                isHighSpeed: highSpeedTypes.includes(TRAIN_TYPES[train.codProduct] || '')
             }
         }));
 
@@ -684,40 +711,55 @@ function updateMap() {
             type: 'circle',
             source: 'trains',
             paint: {
-                'circle-radius': 6,
+                // Radius: larger for high-speed trains
+                'circle-radius': [
+                    'case',
+                    ['get', 'isHighSpeed'], 8,
+                    6
+                ],
                 'circle-color': ['get', 'delayColor'],
-                'circle-stroke-width': 1,
-                'circle-stroke-color': '#fff'
+                // Stroke width: thicker for high-speed
+                'circle-stroke-width': [
+                    'case',
+                    ['get', 'isHighSpeed'], 2,
+                    1
+                ],
+                'circle-stroke-color': [
+                    'case',
+                    ['get', 'isHighSpeed'], '#e74c3c',
+                    '#3498db'
+                ],
+                'circle-opacity': 0.9
             }
         });
 
         // Add click handler for popups
         state.map.on('click', 'trains-markers', (e) => {
             const props = e.features[0].properties;
-            const delayEmoji = props.delay === 0 ? '✅' : props.delay <= 15 ? '⚠️' : '🔴';
             const delayClass = props.delay === 0 ? 'on-time' : props.delay <= 30 ? 'minor-delay' : 'major-delay';
+            const delayIcon = props.delay === 0 ? 'check_circle' : props.delay <= 15 ? 'warning' : 'error';
 
             const html = `
                 <div class="map-popup">
                     <div class="popup-header">
-                        <strong>${delayEmoji} Tren ${props.trainId}</strong>
+                        <strong><span class="material-symbols-outlined ${delayClass}">${delayIcon}</span> Tren ${props.trainId}</strong>
                         <span class="popup-type">${props.type}</span>
                     </div>
                     <div class="popup-body">
                         <div class="popup-row">
-                            <span class="popup-label">📍 Ruta:</span>
+                            <span class="popup-label"><span class="material-symbols-outlined">route</span> Ruta:</span>
                             <span>${props.corridor}</span>
                         </div>
                         <div class="popup-row ${delayClass}">
-                            <span class="popup-label">⏱️ Retraso:</span>
+                            <span class="popup-label"><span class="material-symbols-outlined">schedule</span> Retraso:</span>
                             <span><strong>${props.delay} min</strong></span>
                         </div>
                         <div class="popup-row">
-                            <span class="popup-label">🕐 Última ubicación:</span>
+                            <span class="popup-label"><span class="material-symbols-outlined">location_on</span> Última ubicación:</span>
                             <span>${new Date(props.time * 1000).toLocaleTimeString('es-ES')}</span>
                         </div>
                         ${props.mat ? `<div class="popup-row">
-                            <span class="popup-label">🚂 Material:</span>
+                            <span class="popup-label"><span class="material-symbols-outlined">directions_railway</span> Material:</span>
                             <span>${props.mat}</span>
                         </div>` : ''}
                     </div>
@@ -740,10 +782,10 @@ function updateMap() {
 }
 
 function getDelayColor(delay) {
-    if (delay === 0) return '#2ecc71';
-    if (delay <= 15) return '#f1c40f';
-    if (delay <= 30) return '#e67e22';
-    return '#e74c3c';
+    if (delay <= CONFIG.ON_TIME_THRESHOLD) return '#2ecc71'; // Verde: A tiempo (≤5 min)
+    if (delay <= 15) return '#f1c40f'; // Amarillo: Retraso leve (6-15 min)
+    if (delay <= 30) return '#e67e22'; // Naranja: Retraso moderado (16-30 min)
+    return '#e74c3c'; // Rojo: Retraso importante (>30 min)
 }
 
 // ============================================================================
@@ -999,7 +1041,7 @@ function setupEventListeners() {
     // Load saved theme
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    themeIcon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
+    themeIcon.textContent = savedTheme === 'light' ? 'light_mode' : 'dark_mode';
 
     themeToggle.addEventListener('click', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -1007,9 +1049,9 @@ function setupEventListeners() {
 
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        themeIcon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+        themeIcon.textContent = newTheme === 'light' ? 'light_mode' : 'dark_mode';
 
-        console.log(`🎨 Tema cambiado a: ${newTheme}`);
+        console.log(`Tema cambiado a: ${newTheme}`);
     });
 
     // Navigation
@@ -1060,6 +1102,141 @@ function setupEventListeners() {
     // Request notification permission
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
+    }
+
+    // Train search
+    const trainSearchInput = document.getElementById('trainSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const searchResults = document.getElementById('searchResults');
+
+    trainSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+
+        if (query.length === 0) {
+            clearSearchBtn.style.display = 'none';
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        clearSearchBtn.style.display = 'block';
+        performTrainSearch(query);
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+        trainSearchInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        searchResults.style.display = 'none';
+    });
+
+    // Perform search when Enter is pressed
+    trainSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const query = trainSearchInput.value.trim();
+            if (query) performTrainSearch(query);
+        }
+    });
+}
+
+// ============================================================================
+// TRAIN SEARCH
+// ============================================================================
+
+function performTrainSearch(query) {
+    const searchResults = document.getElementById('searchResults');
+
+    if (!state.fleetData || state.fleetData.length === 0) {
+        searchResults.style.display = 'block';
+        searchResults.innerHTML = `
+            <div class="no-search-results">
+                <span class="material-symbols-outlined">info</span>
+                <p>No hay datos disponibles. Esperando actualización...</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Normalize query to uppercase and remove spaces
+    const normalizedQuery = query.toUpperCase().trim();
+
+    // Search for trains matching the query
+    const matches = state.fleetData.filter(train => {
+        const trainId = train.codComercial || '';
+        const trainType = TRAIN_TYPES[train.codProduct] || '';
+        const trainNumber = trainId.toString();
+
+        // Match if query is found in train ID, type, or combination
+        return trainNumber.includes(normalizedQuery) ||
+               trainType.toUpperCase().includes(normalizedQuery) ||
+               (trainType + ' ' + trainNumber).toUpperCase().includes(normalizedQuery) ||
+               (trainType + trainNumber).toUpperCase().includes(normalizedQuery);
+    });
+
+    // Display results
+    searchResults.style.display = 'block';
+
+    if (matches.length === 0) {
+        searchResults.innerHTML = `
+            <div class="no-search-results">
+                <span class="material-symbols-outlined">search_off</span>
+                <p>No se encontraron trenes que coincidan con "${query}"</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Sort by delay (highest first)
+    matches.sort((a, b) => (b.ultRetraso || 0) - (a.ultRetraso || 0));
+
+    // Limit to top 5 results
+    const topMatches = matches.slice(0, 5);
+
+    searchResults.innerHTML = topMatches.map(train => {
+        const delay = train.ultRetraso || 0;
+        const delayClass = delay <= CONFIG.ON_TIME_THRESHOLD ? 'on-time' :
+                          delay <= 15 ? 'minor-delay' :
+                          delay <= 30 ? 'moderate-delay' : 'major-delay';
+
+        const delayText = delay <= CONFIG.ON_TIME_THRESHOLD ? 'A tiempo' : `+${delay} min`;
+
+        const lastGPS = train.time ? new Date(train.time * 1000).toLocaleString('es-ES') : 'N/A';
+        const material = train.mat || 'Desconocido';
+        const corridor = train.desCorridor || 'Ruta desconocida';
+        const trainType = TRAIN_TYPES[train.codProduct] || 'Tren';
+        const trainId = train.codComercial || 'Desconocido';
+
+        return `
+            <div class="search-result-item">
+                <div class="search-result-header">
+                    <div class="search-train-id">
+                        <span class="material-symbols-outlined" style="vertical-align: middle;">train</span>
+                        ${trainType} ${trainId}
+                    </div>
+                    <div class="search-delay-badge ${delayClass}">${delayText}</div>
+                </div>
+                <div class="search-result-details">
+                    <div class="search-detail-item">
+                        <span class="material-symbols-outlined">route</span>
+                        <span>${corridor}</span>
+                    </div>
+                    <div class="search-detail-item">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>Última actualización: ${lastGPS}</span>
+                    </div>
+                    <div class="search-detail-item">
+                        <span class="material-symbols-outlined">directions_railway</span>
+                        <span>Material: ${material}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (matches.length > 5) {
+        searchResults.innerHTML += `
+            <div style="text-align: center; padding: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">
+                Mostrando 5 de ${matches.length} resultados
+            </div>
+        `;
     }
 }
 
