@@ -1,87 +1,82 @@
-# 🚄 Panel en Tiempo Real de Renfe
+<div align="center">
+  <img src="assets/Renfetraso.png" alt="Renfetraso" width="300">
 
-Un panel de monitoreo en tiempo real para los servicios de larga distancia de Renfe. Rastrea la puntualidad, retrasos, densidad de tráfico y material rodante en tiempo real usando APIs públicas.
+  # 🚄 Renfetraso
 
-![Estado del Panel](https://img.shields.io/badge/estado-en%20vivo-brightgreen) ![Licencia](https://img.shields.io/badge/licencia-MIT-blue)
+  **Monitor de puntualidad en tiempo real de trenes de larga distancia de Renfe**
+</div>
 
-## Características
+---
 
-### 📊 Panel de Puntualidad en Vivo
-- Tarjetas resumen en tiempo real mostrando total de trenes activos, porcentaje a tiempo, retraso promedio y retraso máximo
-- Gráfico de distribución de retrasos en diferentes rangos de tiempo (0 min, 1-5, 6-15, 16-30, 31-60, 60+ minutos)
-- Desglose de retraso promedio por tipo de tren (AVE, Alvia, Talgo, etc.)
-- Visualización de los 10 corredores con más retrasos
+## 📋 Descripción
 
-### 📈 Series Temporales de Retrasos
-- Seguimiento histórico de retrasos con gráficos de líneas mostrando el retraso promedio a lo largo del tiempo
-- Líneas de tendencia separadas para cada tipo de tren con visibilidad configurable
-- Los datos persisten en el localStorage del navegador para sobrevivir a recargas de página
-- Resumen estadístico mostrando retrasos mín/máx/promedio por tipo de tren
-- Acumula hasta 500 puntos de datos (~2 horas a intervalos de 15 segundos)
+Aplicación web que monitorea en tiempo real la puntualidad de los trenes de larga distancia de Renfe. Rastrea retrasos, densidad de tráfico y material rodante usando APIs públicas de Renfe.
 
-### 🗺️ Mapa de Densidad de Tráfico
-- Mapa interactivo impulsado por MapLibre GL JS
-- Alterna entre modo mapa de calor (densidad de tráfico) y modo marcadores (trenes individuales)
-- Marcadores codificados por colores según la gravedad del retraso:
-  - 🟢 Verde: A tiempo (0 min)
-  - 🟡 Amarillo: Retraso menor (1-15 min)
-  - 🟠 Naranja: Retraso moderado (16-30 min)
-  - 🔴 Rojo: Retraso grave (31+ min)
-- Marcadores de tren clicables que muestran información detallada (ID del tren, tipo, corredor, retraso, hora GPS, material rodante)
+## ✨ Características Principales
 
-### ⚠️ Detector de Trenes Retrasados
-- Tabla ordenable de todos los trenes retrasados
-- Filtrado avanzado:
-  - Búsqueda por nombre de corredor
-  - Filtrar por tipo de tren
-  - Control deslizante de umbral de retraso (0-120 minutos)
-- Función de lista de seguimiento para monitorear trenes específicos
-- Notificaciones del navegador cuando los trenes en seguimiento experimentan aumentos significativos de retraso (10+ minutos)
-- Destaca retrasos graves (>60 minutos) en rojo
+- **📊 Dashboard en Vivo**: Estadísticas en tiempo real de puntualidad, retrasos promedio y distribución
+- **📈 Series Temporales**: Gráficos históricos de retrasos por tipo de tren
+- **🗺️ Mapa Interactivo**: Visualización de densidad de tráfico con mapa de calor y marcadores
+- **⚠️ Monitor de Retrasos**: Tabla filtrable de trenes retrasados con sistema de alertas
+- **🚂 Material Rodante**: Análisis de unidades en servicio
 
-### 🚂 Análisis de Material Rodante
-- Extrae y analiza unidades de material rodante de los datos de trenes
-- Resumen de total de unidades únicas en servicio y recuento de series de unidades
-- Gráfico de barras de las 15 series de unidades más activas
-- Tabla detallada que muestra:
-  - Series de unidades (agrupadas por los primeros 3 dígitos)
-  - Recuento de unidades en servicio
-  - Tipos de tren que usan esas unidades
-  - Retraso promedio de los trenes que las transportan
+## 🛠️ Tecnologías
 
-## Stack Tecnológico
+- **Frontend**: HTML/CSS/JavaScript vanilla
+- **Mapas**: [MapLibre GL JS](https://maplibre.org/)
+- **Gráficos**: [Chart.js](https://www.chartjs.org/)
+- **PWA**: Service Worker + Manifest para instalación offline
 
-- **Frontend**: HTML/CSS/JavaScript vanilla (no se requiere proceso de compilación)
-- **Mapas**: [MapLibre GL JS](https://maplibre.org/) v3.6.2 (gratuito, no requiere clave API)
-- **Gráficos**: [Chart.js](https://www.chartjs.org/) v4.4.1
-- **Estilos**: CSS personalizado con tema oscuro ferroviario/nocturno
-- **Almacenamiento de Datos**: localStorage del navegador para persistencia de series temporales
-- **Sondeo de API**: Intervalos de 15 segundos para actualizaciones en tiempo real
+## 📡 Fuentes de Datos
 
-## Fuentes de Datos
+Datos en tiempo real de APIs públicas de Renfe (actualización cada 15 segundos):
 
-Los datos en tiempo real provienen de APIs públicas de Renfe (no se requiere autenticación):
+1. **Posiciones de la Flota**: `https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json`
+2. **Rutas y Estaciones**: `https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json`
+3. **GeoJSON de Estaciones**: Archivo local `./estaciones.geojson`
 
-1. **Posiciones de la Flota** (consultado cada 15s):
-   ```
-   GET https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json?v={timestamp}
-   ```
+## 🚨 Solución CORS
 
-2. **Rutas de Trenes y Estaciones** (consultado cada 15s):
-   ```
-   GET https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json?v={timestamp}
-   ```
+Si ves el estado **DESCONECTADO**, es un problema de CORS. El proyecto usa proxies CORS para acceder a las APIs de Renfe.
 
-3. **GeoJSON de Estaciones** (archivo local):
-   - `./estaciones.geojson` - Descargado de Renfe y servido localmente
-   - Origen: `https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson`
-   - Las estaciones son datos estáticos, no requieren actualización constante
+### Herramienta de diagnóstico
 
-**Nota técnica**: Las APIs 1 y 2 devuelven objetos con estructura `{fechaActualizacion: "...", trenes: [...]}`. El código extrae automáticamente el array `trenes`.
+Abre [test-conexion.html](test-conexion.html) para probar qué proxy funciona mejor.
 
-**Atribución**: Datos proporcionados por Renfe Operadora. Este es un panel no oficial y no está afiliado con Renfe.
+### Configurar proxy manualmente
 
-## Referencia de Tipos de Tren
+Edita [app.js](app.js) línea 3:
+
+```javascript
+// Opciones disponibles:
+CORS_PROXY: 'https://api.allorigins.win/raw?url='  // Más estable
+CORS_PROXY: 'https://corsproxy.io/?'                // Más rápido
+CORS_PROXY: ''                                       // Sin proxy
+```
+
+## 📱 Compatibilidad
+
+- Chrome, Firefox, Safari, Edge (últimas versiones)
+- Soporte PWA para instalación en móviles
+- Responsive design optimizado para móviles y tablets
+
+## 📁 Estructura del Proyecto
+
+```
+renfetraso/
+├── index.html              # Aplicación principal
+├── app.js                  # Lógica JavaScript
+├── style.css               # Estilos
+├── manifest.json           # PWA manifest
+├── sw.js                   # Service Worker
+├── estaciones.geojson      # Datos de estaciones
+├── test-conexion.html      # Diagnóstico CORS
+└── assets/
+    ├── Renfetraso.png      # Logo
+    └── icons/              # Iconos SVG
+```
+
+## 📚 Referencia de Tipos de Tren
 
 | Código | Tipo |
 |--------|------|
@@ -99,247 +94,30 @@ Los datos en tiempo real provienen de APIs públicas de Renfe (no se requiere au
 | 25 | AVE TGV |
 | 28 | AVLO |
 
-## ⚠️ Solución Rápida: "DESCONECTADO"
+## ⚙️ Configuración
 
-Si ves el estado **DESCONECTADO**, es un problema de CORS (Cross-Origin Resource Sharing).
-
-### ¿Qué está pasando?
-
-El servidor de Renfe **bloquea las peticiones directas** desde otros dominios por seguridad. Necesitamos usar un **proxy CORS**.
-
-### ✅ Solución Inmediata
-
-El proyecto ya está configurado con el proxy **AllOrigins**, que es el más confiable:
-
-```javascript
-CORS_PROXY: 'https://api.allorigins.win/raw?url='
-```
-
-**Si aún no funciona**, prueba estos pasos:
-
-1. **Abre la consola del navegador** (F12 → Consola)
-2. **Busca el error exacto**. Deberías ver algo como:
-   ```
-   Obteniendo datos de: https://api.allorigins.win/raw?url=...
-   ```
-
-3. **Si ves "Failed to fetch" o error de red**:
-   - El proxy AllOrigins puede estar temporalmente caído
-   - Prueba con otro proxy (ver opciones abajo)
-
-### 🔄 Proxies CORS Alternativos
-
-Edita [app.js](app.js) línea 3 y prueba estos en orden:
-
-**Opción 1 - AllOrigins** (configurado por defecto, más estable):
-```javascript
-CORS_PROXY: 'https://api.allorigins.win/raw?url='
-```
-
-**Opción 2 - CorsProxy.io** (más rápido pero menos confiable):
-```javascript
-CORS_PROXY: 'https://corsproxy.io/?'
-```
-
-**Opción 3 - CodeTabs**:
-```javascript
-CORS_PROXY: 'https://api.codetabs.com/v1/proxy?quest='
-```
-
-**Opción 4 - Sin proxy** (solo si Renfe habilita CORS públicamente):
-```javascript
-CORS_PROXY: ''
-```
-
-### 🧪 Herramienta de Diagnóstico
-
-**¿Sigues con problemas? EMPIEZA AQUÍ**:
-
-1. Abre **[test-conexion.html](test-conexion.html)** en tu navegador
-2. Haz clic en "Probar Todos"
-3. Te dirá exactamente qué proxy funciona y cuál usar
-
-### 📚 Documentación Completa de CORS
-
-Para soluciones detalladas, consulta **[SOLUCION_CORS.md](SOLUCION_CORS.md)** que incluye:
-- ✅ Comparación completa de todos los proxies disponibles
-- 🛠️ Cómo montar tu propio proxy CORS (Cloudflare Workers, Node.js)
-- 🔍 Troubleshooting paso a paso con ejemplos
-- ❓ FAQ con respuestas a dudas comunes
-- 🚀 Configuración avanzada con fallback automático de múltiples proxies
-
-### 🚀 Solución Avanzada: Múltiples Proxies con Fallback
-
-Para tener máxima confiabilidad, usa el archivo [config-alternativo.js](config-alternativo.js) que prueba automáticamente múltiples proxies hasta encontrar uno que funcione.
-
-**Pasos**:
-1. Abre [config-alternativo.js](config-alternativo.js)
-2. Sigue las instrucciones al final del archivo
-3. El sistema probará automáticamente 4 proxies diferentes
-
-## Empezando
-
-### Desarrollo Local
-
-1. **Clonar el repositorio**:
-   ```bash
-   git clone https://github.com/tuusuario/panel-renfe-tiempo-real.git
-   cd panel-renfe-tiempo-real
-   ```
-
-2. **Servir localmente**:
-
-   Usando Python:
-   ```bash
-   python -m http.server 8000
-   ```
-
-   Usando Node.js:
-   ```bash
-   npx serve
-   ```
-
-   O cualquier otro servidor de archivos estáticos.
-
-3. **Abrir en el navegador**:
-   ```
-   http://localhost:8000
-   ```
-
-### Configuración de CORS
-
-Las APIs de Renfe deberían permitir solicitudes de origen cruzado desde navegadores. Si encuentras errores de CORS:
-
-1. Abre [app.js](app.js)
-2. Encuentra el objeto `CONFIG` al principio
-3. Actualiza el valor `CORS_PROXY`:
-   ```javascript
-   CORS_PROXY: 'https://corsproxy.io/?'
-   ```
-
-Opciones populares de proxy CORS:
-- https://corsproxy.io/?
-- https://api.allorigins.win/raw?url=
-- https://cors-anywhere.herokuapp.com/ (requiere activación)
-
-**Nota**: Usar un proxy CORS puede introducir latencia y solo debe usarse para desarrollo/pruebas.
-
-## Despliegue en GitHub Pages
-
-### Opción 1: Despliegue Manual
-
-1. **Crear un repositorio de GitHub** y sube tu código
-
-2. **Habilitar GitHub Pages**:
-   - Ve a Configuración del repositorio → Pages
-   - Fuente: Desplegar desde una rama
-   - Rama: `main` o `master`, carpeta: `/` (raíz)
-   - Guardar
-
-3. **Acceder a tu sitio**:
-   ```
-   https://tuusuario.github.io/panel-renfe-tiempo-real/
-   ```
-
-### Opción 2: Despliegue Automatizado con GitHub Actions
-
-1. **Crear `.github/workflows/deploy.yml`** (ya incluido en el proyecto)
-
-2. **Push para activar el despliegue**:
-   ```bash
-   git add .
-   git commit -m "Agregar flujo de trabajo de GitHub Actions"
-   git push
-   ```
-
-3. **Configurar Pages**:
-   - Ve a Configuración → Pages
-   - Fuente: GitHub Actions
-
-## Estructura del Proyecto
-
-```
-panel-renfe-tiempo-real/
-├── index.html          # Estructura HTML principal
-├── app.js              # Lógica de la aplicación JavaScript
-├── style.css           # Estilos con tema oscuro
-├── README.md           # Este archivo
-└── .github/
-    └── workflows/
-        └── deploy.yml  # Despliegue de GitHub Actions (opcional)
-```
-
-## Compatibilidad del Navegador
-
-- **Recomendado**: Chrome, Firefox, Safari, Edge (últimas versiones)
-- **Características requeridas**:
-  - JavaScript ES6+
-  - CSS Grid y Flexbox
-  - API de LocalStorage
-  - API de Fetch
-  - API de Notification (opcional, para alertas de lista de seguimiento)
-
-## Consideraciones de Rendimiento
-
-- **Intervalo de sondeo**: 15 segundos (configurable en `app.js`)
-- **Retención de series temporales**: Últimos 500 puntos de datos (~2 horas)
-- **Tamaño de localStorage**: ~50-100KB para datos de series temporales
-- **Rendimiento del mapa**: El modo mapa de calor es más eficiente con muchos trenes (>100)
-
-## Configuración
-
-Toda la configuración está en [app.js](app.js):
+Todas las opciones están en [app.js](app.js):
 
 ```javascript
 const CONFIG = {
-    CORS_PROXY: '',           // URL del proxy CORS (vacío si no se necesita)
-    POLL_INTERVAL: 15000,     // Intervalo de actualización de datos (milisegundos)
-    API_TIMEOUT: 30000,       // Tiempo de espera antes de que el estado se desconecte
-    FLEET_URL: '...',         // Endpoint de la API de flota
-    ROUTES_URL: '...',        // Endpoint de la API de rutas
-    STATIONS_URL: '...'       // Endpoint GeoJSON de estaciones
+    CORS_PROXY: '',           // Proxy CORS (vacío si no se necesita)
+    POLL_INTERVAL: 15000,     // Intervalo de actualización (ms)
+    API_TIMEOUT: 30000,       // Timeout de desconexión (ms)
+    FLEET_URL: '...',         // API de flota
+    ROUTES_URL: '...',        // API de rutas
+    STATIONS_URL: '...'       // GeoJSON de estaciones
 };
 ```
 
-## Hoja de Ruta de Características
+## ⚠️ Descargo de Responsabilidad
 
-- [ ] Exportar estadísticas de retraso a CSV
-- [ ] Comparación de datos históricos (día a día)
-- [ ] Análisis de retrasos a nivel de estación
-- [ ] Versión de aplicación móvil
-- [ ] Alternancia de tema oscuro/claro
-- [ ] Soporte multiidioma (ES/EN)
-- [ ] Análisis avanzados (predicción de retrasos)
+**Renfetraso** es un monitor **no oficial** y **no está afiliado** con Renfe Operadora. Los datos provienen de APIs públicas de Renfe. Uso bajo responsabilidad del usuario.
 
-## Contribuir
+## 🙏 Atribución
 
-¡Las contribuciones son bienvenidas! Por favor sigue estos pasos:
-
-1. Haz un fork del repositorio
-2. Crea una rama de características (`git checkout -b feature/caracteristica-increible`)
-3. Haz commit de tus cambios (`git commit -m 'Agregar característica increíble'`)
-4. Push a la rama (`git push origin feature/caracteristica-increible`)
-5. Abre un Pull Request
-
-## Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo [LICENSE](LICENSE) para más detalles.
-
-## Descargo de Responsabilidad
-
-Este es un panel **no oficial** y **no está afiliado** con Renfe Operadora ni ninguna autoridad ferroviaria oficial española. Todos los datos se obtienen de APIs públicas de Renfe. Úsalo bajo tu propia discreción.
-
-## Agradecimientos
-
-- Datos proporcionados por [Renfe Operadora](https://www.renfe.com/)
-- Teselas de mapa de [OpenStreetMap](https://www.openstreetmap.org/)
-- Construido con [MapLibre GL JS](https://maplibre.org/) y [Chart.js](https://www.chartjs.org/)
-
-## Soporte
-
-Si encuentras problemas o tienes preguntas:
-- Abre un issue en [GitHub Issues](https://github.com/tuusuario/panel-renfe-tiempo-real/issues)
-- Consulta la sección de [Configuración de CORS](#configuración-de-cors) si los datos no se cargan
+- Datos: [Renfe Operadora](https://www.renfe.com/)
+- Mapas: [OpenStreetMap](https://www.openstreetmap.org/)
+- Librerías: [MapLibre GL JS](https://maplibre.org/), [Chart.js](https://www.chartjs.org/)
 
 ---
 

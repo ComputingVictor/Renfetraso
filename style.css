@@ -127,10 +127,21 @@ body {
     margin-bottom: 1rem;
 }
 
+.logo-image {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    margin: 0 auto 1rem;
+    display: block;
+    border-radius: 8px;
+}
+
 .logo h1 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
     color: var(--text-primary);
+    text-align: center;
+    font-weight: 700;
 }
 
 .live-indicator {
