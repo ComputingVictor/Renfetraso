@@ -1,88 +1,88 @@
-# 🚄 Renfe Real-Time Dashboard
+# 🚄 Panel en Tiempo Real de Renfe
 
-A real-time monitoring dashboard for Spanish RENFE long-distance train services. Track punctuality, delays, traffic density, and rolling stock in real-time using public APIs.
+Un panel de monitoreo en tiempo real para los servicios de larga distancia de Renfe. Rastrea la puntualidad, retrasos, densidad de tráfico y material rodante en tiempo real usando APIs públicas.
 
-![Dashboard Preview](https://img.shields.io/badge/status-live-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Estado del Panel](https://img.shields.io/badge/estado-en%20vivo-brightgreen) ![Licencia](https://img.shields.io/badge/licencia-MIT-blue)
 
-## Features
+## Características
 
-### 📊 Live Punctuality Dashboard
-- Real-time summary cards showing total active trains, on-time percentage, average delay, and maximum delay
-- Delay distribution chart across different time ranges (0 min, 1-5, 6-15, 16-30, 31-60, 60+ minutes)
-- Average delay breakdown by train type (AVE, Alvia, Talgo, etc.)
-- Top 10 most delayed corridors visualization
+### 📊 Panel de Puntualidad en Vivo
+- Tarjetas resumen en tiempo real mostrando total de trenes activos, porcentaje a tiempo, retraso promedio y retraso máximo
+- Gráfico de distribución de retrasos en diferentes rangos de tiempo (0 min, 1-5, 6-15, 16-30, 31-60, 60+ minutos)
+- Desglose de retraso promedio por tipo de tren (AVE, Alvia, Talgo, etc.)
+- Visualización de los 10 corredores con más retrasos
 
-### 📈 Delay Time Series
-- Historical delay tracking with line charts showing average delay over time
-- Separate trend lines for each train type with toggleable visibility
-- Data persists in browser localStorage to survive page refreshes
-- Statistical summary showing min/max/avg delays per train type
-- Accumulates up to 500 data points (~2 hours at 15-second intervals)
+### 📈 Series Temporales de Retrasos
+- Seguimiento histórico de retrasos con gráficos de líneas mostrando el retraso promedio a lo largo del tiempo
+- Líneas de tendencia separadas para cada tipo de tren con visibilidad configurable
+- Los datos persisten en el localStorage del navegador para sobrevivir a recargas de página
+- Resumen estadístico mostrando retrasos mín/máx/promedio por tipo de tren
+- Acumula hasta 500 puntos de datos (~2 horas a intervalos de 15 segundos)
 
-### 🗺️ Traffic Density Map
-- Interactive map powered by MapLibre GL JS
-- Toggle between heatmap mode (traffic density) and marker mode (individual trains)
-- Color-coded markers by delay severity:
-  - 🟢 Green: On time (0 min)
-  - 🟡 Yellow: Minor delay (1-15 min)
-  - 🟠 Orange: Moderate delay (16-30 min)
-  - 🔴 Red: Severe delay (31+ min)
-- Clickable train markers showing detailed information (train ID, type, corridor, delay, GPS time, rolling stock)
+### 🗺️ Mapa de Densidad de Tráfico
+- Mapa interactivo impulsado por MapLibre GL JS
+- Alterna entre modo mapa de calor (densidad de tráfico) y modo marcadores (trenes individuales)
+- Marcadores codificados por colores según la gravedad del retraso:
+  - 🟢 Verde: A tiempo (0 min)
+  - 🟡 Amarillo: Retraso menor (1-15 min)
+  - 🟠 Naranja: Retraso moderado (16-30 min)
+  - 🔴 Rojo: Retraso grave (31+ min)
+- Marcadores de tren clicables que muestran información detallada (ID del tren, tipo, corredor, retraso, hora GPS, material rodante)
 
-### ⚠️ Delayed Train Detector
-- Sortable table of all delayed trains
-- Advanced filtering:
-  - Search by corridor name
-  - Filter by train type
-  - Delay threshold slider (0-120 minutes)
-- Watchlist feature to monitor specific trains
-- Browser notifications when watched trains experience significant delay increases (10+ minutes)
-- Highlights severe delays (>60 minutes) in red
+### ⚠️ Detector de Trenes Retrasados
+- Tabla ordenable de todos los trenes retrasados
+- Filtrado avanzado:
+  - Búsqueda por nombre de corredor
+  - Filtrar por tipo de tren
+  - Control deslizante de umbral de retraso (0-120 minutos)
+- Función de lista de seguimiento para monitorear trenes específicos
+- Notificaciones del navegador cuando los trenes en seguimiento experimentan aumentos significativos de retraso (10+ minutos)
+- Destaca retrasos graves (>60 minutos) en rojo
 
-### 🚂 Rolling Stock Analysis
-- Extract and analyze rolling stock units from train data
-- Summary of total unique units in service and unit series count
-- Top 15 most active unit series bar chart
-- Detailed table showing:
-  - Unit series (grouped by first 3 digits)
-  - Count of units in service
-  - Train types using those units
-  - Average delay of trains carrying them
+### 🚂 Análisis de Material Rodante
+- Extrae y analiza unidades de material rodante de los datos de trenes
+- Resumen de total de unidades únicas en servicio y recuento de series de unidades
+- Gráfico de barras de las 15 series de unidades más activas
+- Tabla detallada que muestra:
+  - Series de unidades (agrupadas por los primeros 3 dígitos)
+  - Recuento de unidades en servicio
+  - Tipos de tren que usan esas unidades
+  - Retraso promedio de los trenes que las transportan
 
-## Technology Stack
+## Stack Tecnológico
 
-- **Frontend**: Vanilla HTML/CSS/JavaScript (no build step required)
-- **Maps**: [MapLibre GL JS](https://maplibre.org/) v3.6.2 (free, no API key needed)
-- **Charts**: [Chart.js](https://www.chartjs.org/) v4.4.1
-- **Styling**: Custom CSS with dark railway/night theme
-- **Data Storage**: Browser localStorage for time series persistence
-- **API Polling**: 15-second intervals for real-time updates
+- **Frontend**: HTML/CSS/JavaScript vanilla (no se requiere proceso de compilación)
+- **Mapas**: [MapLibre GL JS](https://maplibre.org/) v3.6.2 (gratuito, no requiere clave API)
+- **Gráficos**: [Chart.js](https://www.chartjs.org/) v4.4.1
+- **Estilos**: CSS personalizado con tema oscuro ferroviario/nocturno
+- **Almacenamiento de Datos**: localStorage del navegador para persistencia de series temporales
+- **Sondeo de API**: Intervalos de 15 segundos para actualizaciones en tiempo real
 
-## Data Sources
+## Fuentes de Datos
 
-All data comes from public RENFE APIs (no authentication required):
+Todos los datos provienen de APIs públicas de Renfe (no se requiere autenticación):
 
-1. **Fleet Positions** (polled every 15s):
+1. **Posiciones de la Flota** (consultado cada 15s):
    ```
    GET https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json?v={timestamp}
    ```
 
-2. **Train Routes & Stations**:
+2. **Rutas de Trenes y Estaciones**:
    ```
    GET https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json?v={timestamp}
    ```
 
-3. **Stations GeoJSON** (static):
+3. **GeoJSON de Estaciones** (estático):
    ```
    GET https://tiempo-real.largorecorrido.renfe.com/data/estaciones.geojson
    ```
 
-**Attribution**: Data provided by RENFE Operadora. This is an unofficial dashboard and is not affiliated with RENFE.
+**Atribución**: Datos proporcionados por Renfe Operadora. Este es un panel no oficial y no está afiliado con Renfe.
 
-## Train Type Reference
+## Referencia de Tipos de Tren
 
-| Code | Type |
-|------|------|
+| Código | Tipo |
+|--------|------|
 | 2 | AVE |
 | 3 | Avant |
 | 4 | Talgo |
@@ -97,206 +97,170 @@ All data comes from public RENFE APIs (no authentication required):
 | 25 | AVE TGV |
 | 28 | AVLO |
 
-## Getting Started
+## Empezando
 
-### Local Development
+### Desarrollo Local
 
-1. **Clone the repository**:
+1. **Clonar el repositorio**:
    ```bash
-   git clone https://github.com/yourusername/renfe-real-time-dashboard.git
-   cd renfe-real-time-dashboard
+   git clone https://github.com/tuusuario/panel-renfe-tiempo-real.git
+   cd panel-renfe-tiempo-real
    ```
 
-2. **Serve locally**:
+2. **Servir localmente**:
 
-   Using Python:
+   Usando Python:
    ```bash
    python -m http.server 8000
    ```
 
-   Using Node.js:
+   Usando Node.js:
    ```bash
    npx serve
    ```
 
-   Or any other static file server.
+   O cualquier otro servidor de archivos estáticos.
 
-3. **Open in browser**:
+3. **Abrir en el navegador**:
    ```
    http://localhost:8000
    ```
 
-### CORS Configuration
+### Configuración de CORS
 
-The RENFE APIs should allow cross-origin requests from browsers. If you encounter CORS errors:
+Las APIs de Renfe deberían permitir solicitudes de origen cruzado desde navegadores. Si encuentras errores de CORS:
 
-1. Open [app.js](app.js)
-2. Find the `CONFIG` object at the top
-3. Update the `CORS_PROXY` value:
+1. Abre [app.js](app.js)
+2. Encuentra el objeto `CONFIG` al principio
+3. Actualiza el valor `CORS_PROXY`:
    ```javascript
    CORS_PROXY: 'https://corsproxy.io/?'
    ```
 
-Popular CORS proxy options:
+Opciones populares de proxy CORS:
 - https://corsproxy.io/?
 - https://api.allorigins.win/raw?url=
-- https://cors-anywhere.herokuapp.com/ (requires activation)
+- https://cors-anywhere.herokuapp.com/ (requiere activación)
 
-**Note**: Using a CORS proxy may introduce latency and should only be used for development/testing.
+**Nota**: Usar un proxy CORS puede introducir latencia y solo debe usarse para desarrollo/pruebas.
 
-## Deployment to GitHub Pages
+## Despliegue en GitHub Pages
 
-### Option 1: Manual Deployment
+### Opción 1: Despliegue Manual
 
-1. **Create a GitHub repository** and push your code
+1. **Crear un repositorio de GitHub** y sube tu código
 
-2. **Enable GitHub Pages**:
-   - Go to repository Settings → Pages
-   - Source: Deploy from branch
-   - Branch: `main` or `master`, folder: `/` (root)
-   - Save
+2. **Habilitar GitHub Pages**:
+   - Ve a Configuración del repositorio → Pages
+   - Fuente: Desplegar desde una rama
+   - Rama: `main` o `master`, carpeta: `/` (raíz)
+   - Guardar
 
-3. **Access your site**:
+3. **Acceder a tu sitio**:
    ```
-   https://yourusername.github.io/renfe-real-time-dashboard/
+   https://tuusuario.github.io/panel-renfe-tiempo-real/
    ```
 
-### Option 2: Automated Deployment with GitHub Actions
+### Opción 2: Despliegue Automatizado con GitHub Actions
 
-1. **Create `.github/workflows/deploy.yml`**:
+1. **Crear `.github/workflows/deploy.yml`** (ya incluido en el proyecto)
 
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-2. **Push to trigger deployment**:
+2. **Push para activar el despliegue**:
    ```bash
    git add .
-   git commit -m "Add GitHub Actions workflow"
+   git commit -m "Agregar flujo de trabajo de GitHub Actions"
    git push
    ```
 
-3. **Configure Pages**:
-   - Go to Settings → Pages
-   - Source: GitHub Actions
+3. **Configurar Pages**:
+   - Ve a Configuración → Pages
+   - Fuente: GitHub Actions
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
-renfe-real-time-dashboard/
-├── index.html          # Main HTML structure
-├── app.js              # JavaScript application logic
-├── style.css           # Dark theme styling
-├── README.md           # This file
+panel-renfe-tiempo-real/
+├── index.html          # Estructura HTML principal
+├── app.js              # Lógica de la aplicación JavaScript
+├── style.css           # Estilos con tema oscuro
+├── README.md           # Este archivo
 └── .github/
     └── workflows/
-        └── deploy.yml  # GitHub Actions deployment (optional)
+        └── deploy.yml  # Despliegue de GitHub Actions (opcional)
 ```
 
-## Browser Compatibility
+## Compatibilidad del Navegador
 
-- **Recommended**: Chrome, Firefox, Safari, Edge (latest versions)
-- **Required features**:
-  - ES6+ JavaScript
-  - CSS Grid & Flexbox
-  - LocalStorage API
-  - Fetch API
-  - Notification API (optional, for watchlist alerts)
+- **Recomendado**: Chrome, Firefox, Safari, Edge (últimas versiones)
+- **Características requeridas**:
+  - JavaScript ES6+
+  - CSS Grid y Flexbox
+  - API de LocalStorage
+  - API de Fetch
+  - API de Notification (opcional, para alertas de lista de seguimiento)
 
-## Performance Considerations
+## Consideraciones de Rendimiento
 
-- **Polling interval**: 15 seconds (configurable in `app.js`)
-- **Time series retention**: Last 500 data points (~2 hours)
-- **localStorage size**: ~50-100KB for time series data
-- **Map performance**: Heatmap mode is more performant with many trains (>100)
+- **Intervalo de sondeo**: 15 segundos (configurable en `app.js`)
+- **Retención de series temporales**: Últimos 500 puntos de datos (~2 horas)
+- **Tamaño de localStorage**: ~50-100KB para datos de series temporales
+- **Rendimiento del mapa**: El modo mapa de calor es más eficiente con muchos trenes (>100)
 
-## Configuration
+## Configuración
 
-All configuration is in [app.js](app.js):
+Toda la configuración está en [app.js](app.js):
 
 ```javascript
 const CONFIG = {
-    CORS_PROXY: '',           // CORS proxy URL (empty if not needed)
-    POLL_INTERVAL: 15000,     // Data refresh interval (milliseconds)
-    API_TIMEOUT: 30000,       // Timeout before status goes offline
-    FLEET_URL: '...',         // Fleet API endpoint
-    ROUTES_URL: '...',        // Routes API endpoint
-    STATIONS_URL: '...'       // Stations GeoJSON endpoint
+    CORS_PROXY: '',           // URL del proxy CORS (vacío si no se necesita)
+    POLL_INTERVAL: 15000,     // Intervalo de actualización de datos (milisegundos)
+    API_TIMEOUT: 30000,       // Tiempo de espera antes de que el estado se desconecte
+    FLEET_URL: '...',         // Endpoint de la API de flota
+    ROUTES_URL: '...',        // Endpoint de la API de rutas
+    STATIONS_URL: '...'       // Endpoint GeoJSON de estaciones
 };
 ```
 
-## Features Roadmap
+## Hoja de Ruta de Características
 
-- [ ] Export delay statistics to CSV
-- [ ] Historical data comparison (day-over-day)
-- [ ] Station-level delay analysis
-- [ ] Mobile app version
-- [ ] Dark/light theme toggle
-- [ ] Multi-language support (EN/ES)
-- [ ] Advanced analytics (delay prediction)
+- [ ] Exportar estadísticas de retraso a CSV
+- [ ] Comparación de datos históricos (día a día)
+- [ ] Análisis de retrasos a nivel de estación
+- [ ] Versión de aplicación móvil
+- [ ] Alternancia de tema oscuro/claro
+- [ ] Soporte multiidioma (ES/EN)
+- [ ] Análisis avanzados (predicción de retrasos)
 
-## Contributing
+## Contribuir
 
-Contributions are welcome! Please follow these steps:
+¡Las contribuciones son bienvenidas! Por favor sigue estos pasos:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Haz un fork del repositorio
+2. Crea una rama de características (`git checkout -b feature/caracteristica-increible`)
+3. Haz commit de tus cambios (`git commit -m 'Agregar característica increíble'`)
+4. Push a la rama (`git push origin feature/caracteristica-increible`)
+5. Abre un Pull Request
 
-## License
+## Licencia
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo [LICENSE](LICENSE) para más detalles.
 
-## Disclaimer
+## Descargo de Responsabilidad
 
-This is an **unofficial** dashboard and is **not affiliated** with RENFE Operadora or any official Spanish rail authority. All data is sourced from publicly available RENFE APIs. Use at your own discretion.
+Este es un panel **no oficial** y **no está afiliado** con Renfe Operadora ni ninguna autoridad ferroviaria oficial española. Todos los datos se obtienen de APIs públicas de Renfe. Úsalo bajo tu propia discreción.
 
-## Acknowledgments
+## Agradecimientos
 
-- Data provided by [RENFE Operadora](https://www.renfe.com/)
-- Map tiles from [OpenStreetMap](https://www.openstreetmap.org/)
-- Built with [MapLibre GL JS](https://maplibre.org/) and [Chart.js](https://www.chartjs.org/)
+- Datos proporcionados por [Renfe Operadora](https://www.renfe.com/)
+- Teselas de mapa de [OpenStreetMap](https://www.openstreetmap.org/)
+- Construido con [MapLibre GL JS](https://maplibre.org/) y [Chart.js](https://www.chartjs.org/)
 
-## Support
+## Soporte
 
-If you encounter issues or have questions:
-- Open an issue on [GitHub Issues](https://github.com/yourusername/renfe-real-time-dashboard/issues)
-- Check the [CORS Configuration](#cors-configuration) section if data doesn't load
+Si encuentras problemas o tienes preguntas:
+- Abre un issue en [GitHub Issues](https://github.com/tuusuario/panel-renfe-tiempo-real/issues)
+- Consulta la sección de [Configuración de CORS](#configuración-de-cors) si los datos no se cargan
 
 ---
 
-Made with ❤️ for Spanish rail enthusiasts
+Hecho con ❤️ para entusiastas del ferrocarril español

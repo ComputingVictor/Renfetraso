@@ -83,10 +83,10 @@ function updateStatusIndicator(success) {
     const text = document.getElementById('statusText');
     if (success) {
         dot.className = 'status-dot live';
-        text.textContent = 'LIVE';
+        text.textContent = 'EN VIVO';
     } else {
         dot.className = 'status-dot offline';
-        text.textContent = 'OFFLINE';
+        text.textContent = 'DESCONECTADO';
     }
 }
 
@@ -94,7 +94,7 @@ function updateLastUpdateTime() {
     const elem = document.getElementById('lastUpdate');
     if (state.lastFetchTime) {
         const date = new Date(state.lastFetchTime);
-        elem.textContent = `Last update: ${date.toLocaleTimeString()}`;
+        elem.textContent = `Última actualización: ${date.toLocaleTimeString('es-ES')}`;
     }
 }
 
@@ -226,7 +226,7 @@ function updateDelayDistributionChart(delays) {
             data: {
                 labels: Object.keys(ranges),
                 datasets: [{
-                    label: 'Number of Trains',
+                    label: 'Número de Trenes',
                     data: Object.values(ranges),
                     backgroundColor: ['#2ecc71', '#f1c40f', '#e67e22', '#e74c3c', '#c0392b', '#8b0000']
                 }]
@@ -273,7 +273,7 @@ function updateDelayByTypeChart(trains) {
             data: {
                 labels,
                 datasets: [{
-                    label: 'Avg Delay (min)',
+                    label: 'Retraso Promedio (min)',
                     data: avgDelays,
                     backgroundColor: colors
                 }]
@@ -323,7 +323,7 @@ function updateDelayByCorridorChart(trains) {
             data: {
                 labels,
                 datasets: [{
-                    label: 'Avg Delay (min)',
+                    label: 'Retraso Promedio (min)',
                     data,
                     backgroundColor: '#e74c3c'
                 }]
@@ -409,11 +409,11 @@ function updateTimeSeriesChart() {
                     x: {
                         type: 'time',
                         time: { unit: 'minute' },
-                        title: { display: true, text: 'Time' }
+                        title: { display: true, text: 'Tiempo' }
                     },
                     y: {
                         beginAtZero: true,
-                        title: { display: true, text: 'Avg Delay (min)' }
+                        title: { display: true, text: 'Retraso Promedio (min)' }
                     }
                 },
                 plugins: {
@@ -440,7 +440,7 @@ function updateTimeSeriesStats(enabledTypes) {
         const max = Math.max(...values).toFixed(1);
         const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
 
-        return `<strong>${type}:</strong> Min: ${min}, Max: ${max}, Avg: ${avg}`;
+        return `<strong>${type}:</strong> Mín: ${min}, Máx: ${max}, Prom: ${avg}`;
     }).filter(s => s !== null);
 
     statsDiv.innerHTML = stats.join(' | ');
@@ -482,7 +482,7 @@ function initMap() {
     document.getElementById('toggleMapMode').addEventListener('click', () => {
         state.mapMode = state.mapMode === 'heatmap' ? 'markers' : 'heatmap';
         document.getElementById('toggleMapMode').textContent =
-            state.mapMode === 'heatmap' ? 'Switch to Markers' : 'Switch to Heatmap';
+            state.mapMode === 'heatmap' ? 'Cambiar a Marcadores' : 'Cambiar a Mapa de Calor';
         updateMap();
     });
 }
@@ -551,12 +551,12 @@ function updateMap() {
         state.map.on('click', 'trains-markers', (e) => {
             const props = e.features[0].properties;
             const html = `
-                <strong>Train ${props.trainId}</strong><br>
-                Type: ${props.type}<br>
-                Corridor: ${props.corridor}<br>
-                Delay: ${props.delay} min<br>
-                Last GPS: ${new Date(props.time * 1000).toLocaleTimeString()}<br>
-                Rolling Stock: ${props.mat || 'N/A'}
+                <strong>Tren ${props.trainId}</strong><br>
+                Tipo: ${props.type}<br>
+                Corredor: ${props.corridor}<br>
+                Retraso: ${props.delay} min<br>
+                Último GPS: ${new Date(props.time * 1000).toLocaleTimeString('es-ES')}<br>
+                Material Rodante: ${props.mat || 'N/D'}
             `;
             new maplibregl.Popup()
                 .setLngLat(e.lngLat)
@@ -612,16 +612,16 @@ function updateDelayedTrains() {
         const delay = parseInt(train.ultRetraso || 0);
         const rowClass = delay > 60 ? 'severe-delay' : '';
         const isWatched = state.watchedTrains.has(train.codComercial);
-        const watchBtnText = isWatched ? 'Unwatch' : 'Watch';
+        const watchBtnText = isWatched ? 'Dejar de seguir' : 'Seguir';
 
         return `
             <tr class="${rowClass}">
                 <td>${train.codComercial}</td>
-                <td>${TRAIN_TYPES[train.codProduct] || 'Unknown'}</td>
-                <td>${train.desCorridor || 'N/A'}</td>
+                <td>${TRAIN_TYPES[train.codProduct] || 'Desconocido'}</td>
+                <td>${train.desCorridor || 'N/D'}</td>
                 <td>${delay}</td>
-                <td>${new Date(train.time * 1000).toLocaleTimeString()}</td>
-                <td>${train.mat || 'N/A'}</td>
+                <td>${new Date(train.time * 1000).toLocaleTimeString('es-ES')}</td>
+                <td>${train.mat || 'N/D'}</td>
                 <td>
                     <button class="btn-watch" data-train="${train.codComercial}">
                         ${watchBtnText}
@@ -648,7 +648,7 @@ function updateDelayedTrains() {
     // Populate type filter if empty
     const typeSelect = document.getElementById('typeFilter');
     if (typeSelect.options.length === 1) {
-        const types = new Set(state.fleetData.map(t => TRAIN_TYPES[t.codProduct] || 'Unknown'));
+        const types = new Set(state.fleetData.map(t => TRAIN_TYPES[t.codProduct] || 'Desconocido'));
         Array.from(types).sort().forEach(type => {
             const option = document.createElement('option');
             option.value = type;
@@ -662,7 +662,7 @@ function updateWatchlist() {
     const watchedDiv = document.getElementById('watchedTrains');
 
     if (state.watchedTrains.size === 0) {
-        watchedDiv.innerHTML = 'No trains being watched';
+        watchedDiv.innerHTML = 'No hay trenes en seguimiento';
         return;
     }
 
@@ -672,9 +672,9 @@ function updateWatchlist() {
         const delay = parseInt(train.ultRetraso || 0);
         return `
             <div class="watch-item">
-                <strong>${train.codComercial}</strong> - ${TRAIN_TYPES[train.codProduct] || 'Unknown'}<br>
-                ${train.desCorridor || 'N/A'}<br>
-                Delay: <span class="delay-value">${delay} min</span>
+                <strong>${train.codComercial}</strong> - ${TRAIN_TYPES[train.codProduct] || 'Desconocido'}<br>
+                ${train.desCorridor || 'N/D'}<br>
+                Retraso: <span class="delay-value">${delay} min</span>
             </div>
         `;
     }).join('');
@@ -699,8 +699,8 @@ function checkWatchedTrains() {
 
 function sendNotification(trainId, currentDelay, previousDelay) {
     if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Renfe Alert', {
-            body: `Train ${trainId} delay increased from ${previousDelay} to ${currentDelay} minutes`,
+        new Notification('Alerta Renfe', {
+            body: `El tren ${trainId} ha aumentado su retraso de ${previousDelay} a ${currentDelay} minutos`,
             icon: '🚄'
         });
     }
@@ -778,7 +778,7 @@ function updateRollingStock() {
             data: {
                 labels: top15.map(s => s.series),
                 datasets: [{
-                    label: 'Units in Service',
+                    label: 'Unidades en Servicio',
                     data: top15.map(s => s.count),
                     backgroundColor: '#3498db'
                 }]
@@ -841,7 +841,7 @@ function setupEventListeners() {
     });
 
     document.getElementById('clearHistory').addEventListener('click', () => {
-        if (confirm('Clear all time series history?')) {
+        if (confirm('¿Borrar todo el historial de series temporales?')) {
             state.timeSeriesData = [];
             localStorage.removeItem('renfe_timeseries');
             updateTimeSeries();

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Renfe Real-Time Dashboard</title>
+    <title>Panel en Tiempo Real de Renfe</title>
     <link rel="stylesheet" href="style.css">
     <!-- MapLibre GL JS -->
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
@@ -13,77 +13,77 @@
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar Navigation -->
+        <!-- Navegación Lateral -->
         <nav class="sidebar">
             <div class="logo">
-                <h1>🚄 Renfe Live</h1>
+                <h1>🚄 Renfe en Vivo</h1>
                 <div class="live-indicator">
                     <span class="status-dot" id="statusDot"></span>
-                    <span id="statusText">CONNECTING</span>
+                    <span id="statusText">CONECTANDO</span>
                 </div>
-                <div class="last-update" id="lastUpdate">Last update: Never</div>
+                <div class="last-update" id="lastUpdate">Última actualización: Nunca</div>
             </div>
             <ul class="nav-menu">
-                <li><a href="#dashboard" class="nav-link active" data-section="dashboard">📊 Punctuality</a></li>
-                <li><a href="#timeseries" class="nav-link" data-section="timeseries">📈 Time Series</a></li>
-                <li><a href="#map" class="nav-link" data-section="map">🗺️ Traffic Map</a></li>
-                <li><a href="#delayed" class="nav-link" data-section="delayed">⚠️ Delays</a></li>
-                <li><a href="#rolling-stock" class="nav-link" data-section="rolling-stock">🚂 Rolling Stock</a></li>
+                <li><a href="#dashboard" class="nav-link active" data-section="dashboard">📊 Puntualidad</a></li>
+                <li><a href="#timeseries" class="nav-link" data-section="timeseries">📈 Series Temporales</a></li>
+                <li><a href="#map" class="nav-link" data-section="map">🗺️ Mapa de Tráfico</a></li>
+                <li><a href="#delayed" class="nav-link" data-section="delayed">⚠️ Retrasos</a></li>
+                <li><a href="#rolling-stock" class="nav-link" data-section="rolling-stock">🚂 Material Rodante</a></li>
             </ul>
         </nav>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Section 1: Live Punctuality Dashboard -->
+            <!-- Sección 1: Panel de Puntualidad en Vivo -->
             <section id="dashboard" class="section active">
-                <h2>Live Punctuality Dashboard</h2>
+                <h2>Panel de Puntualidad en Vivo</h2>
 
                 <div class="summary-cards">
                     <div class="card">
                         <div class="card-value" id="totalTrains">-</div>
-                        <div class="card-label">Active Trains</div>
+                        <div class="card-label">Trenes Activos</div>
                     </div>
                     <div class="card">
                         <div class="card-value" id="onTimePercent">-</div>
-                        <div class="card-label">On Time (%)</div>
+                        <div class="card-label">A Tiempo (%)</div>
                     </div>
                     <div class="card">
                         <div class="card-value" id="avgDelay">-</div>
-                        <div class="card-label">Avg Delay (min)</div>
+                        <div class="card-label">Retraso Promedio (min)</div>
                     </div>
                     <div class="card">
                         <div class="card-value" id="maxDelay">-</div>
-                        <div class="card-label">Max Delay (min)</div>
+                        <div class="card-label">Retraso Máximo (min)</div>
                     </div>
                 </div>
 
                 <div class="charts-grid">
                     <div class="chart-container">
-                        <h3>Delay Distribution</h3>
+                        <h3>Distribución de Retrasos</h3>
                         <canvas id="delayDistChart"></canvas>
                     </div>
                     <div class="chart-container">
-                        <h3>Avg Delay by Train Type</h3>
+                        <h3>Retraso Promedio por Tipo de Tren</h3>
                         <canvas id="delayByTypeChart"></canvas>
                     </div>
                 </div>
 
                 <div class="chart-container full-width">
-                    <h3>Top 10 Most Delayed Corridors</h3>
+                    <h3>Top 10 Corredores con Más Retrasos</h3>
                     <canvas id="delayByCorridorChart"></canvas>
                 </div>
             </section>
 
-            <!-- Section 2: Delay Time Series -->
+            <!-- Sección 2: Series Temporales de Retrasos -->
             <section id="timeseries" class="section">
-                <h2>Delay Time Series</h2>
+                <h2>Series Temporales de Retrasos</h2>
 
                 <div class="controls">
                     <label>
-                        <input type="checkbox" id="toggleAllTypes" checked> Toggle All Types
+                        <input type="checkbox" id="toggleAllTypes" checked> Alternar Todos los Tipos
                     </label>
                     <div id="typeToggles"></div>
-                    <button id="clearHistory" class="btn-secondary">Clear History</button>
+                    <button id="clearHistory" class="btn-secondary">Borrar Historial</button>
                 </div>
 
                 <div class="chart-container full-width">
@@ -93,14 +93,14 @@
                 <div class="stats-summary" id="timeSeriesStats"></div>
             </section>
 
-            <!-- Section 3: Traffic Density Map -->
+            <!-- Sección 3: Mapa de Densidad de Tráfico -->
             <section id="map" class="section">
-                <h2>Traffic Density Map</h2>
+                <h2>Mapa de Densidad de Tráfico</h2>
 
                 <div class="controls">
-                    <button id="toggleMapMode" class="btn-primary">Switch to Markers</button>
+                    <button id="toggleMapMode" class="btn-primary">Cambiar a Marcadores</button>
                     <div class="legend">
-                        <span class="legend-item"><span class="dot green"></span> On time</span>
+                        <span class="legend-item"><span class="dot green"></span> A tiempo</span>
                         <span class="legend-item"><span class="dot yellow"></span> 1-15 min</span>
                         <span class="legend-item"><span class="dot orange"></span> 16-30 min</span>
                         <span class="legend-item"><span class="dot red"></span> 31+ min</span>
@@ -110,22 +110,22 @@
                 <div id="mapContainer"></div>
             </section>
 
-            <!-- Section 4: Delayed Train Detector -->
+            <!-- Sección 4: Detector de Trenes Retrasados -->
             <section id="delayed" class="section">
-                <h2>Delayed Train Detector</h2>
+                <h2>Detector de Trenes Retrasados</h2>
 
                 <div id="watchlist" class="watchlist">
-                    <h3>Watchlist</h3>
-                    <div id="watchedTrains">No trains being watched</div>
+                    <h3>Lista de Seguimiento</h3>
+                    <div id="watchedTrains">No hay trenes en seguimiento</div>
                 </div>
 
                 <div class="controls">
-                    <input type="text" id="corridorFilter" placeholder="Filter by corridor...">
+                    <input type="text" id="corridorFilter" placeholder="Filtrar por corredor...">
                     <select id="typeFilter">
-                        <option value="">All Types</option>
+                        <option value="">Todos los Tipos</option>
                     </select>
                     <label>
-                        Min Delay: <span id="delayThresholdValue">0</span> min
+                        Retraso Mín: <span id="delayThresholdValue">0</span> min
                         <input type="range" id="delayThreshold" min="0" max="120" value="0">
                     </label>
                 </div>
@@ -134,13 +134,13 @@
                     <table id="delayedTrainsTable">
                         <thead>
                             <tr>
-                                <th>Train ID</th>
-                                <th>Type</th>
-                                <th>Corridor</th>
-                                <th>Delay (min)</th>
-                                <th>Last GPS</th>
-                                <th>Rolling Stock</th>
-                                <th>Action</th>
+                                <th>ID Tren</th>
+                                <th>Tipo</th>
+                                <th>Corredor</th>
+                                <th>Retraso (min)</th>
+                                <th>Último GPS</th>
+                                <th>Material Rodante</th>
+                                <th>Acción</th>
                             </tr>
                         </thead>
                         <tbody id="delayedTrainsBody">
@@ -149,23 +149,23 @@
                 </div>
             </section>
 
-            <!-- Section 5: Rolling Stock Analysis -->
+            <!-- Sección 5: Análisis de Material Rodante -->
             <section id="rolling-stock" class="section">
-                <h2>Rolling Stock Analysis</h2>
+                <h2>Análisis de Material Rodante</h2>
 
                 <div class="summary-cards">
                     <div class="card">
                         <div class="card-value" id="totalUnits">-</div>
-                        <div class="card-label">Unique Units in Service</div>
+                        <div class="card-label">Unidades Únicas en Servicio</div>
                     </div>
                     <div class="card">
                         <div class="card-value" id="totalSeries">-</div>
-                        <div class="card-label">Unit Series</div>
+                        <div class="card-label">Series de Unidades</div>
                     </div>
                 </div>
 
                 <div class="chart-container full-width">
-                    <h3>Top 15 Most Active Unit Series</h3>
+                    <h3>Top 15 Series de Unidades Más Activas</h3>
                     <canvas id="rollingStockChart"></canvas>
                 </div>
 
@@ -173,10 +173,10 @@
                     <table id="rollingStockTable">
                         <thead>
                             <tr>
-                                <th>Unit Series</th>
-                                <th>Count</th>
-                                <th>Train Types</th>
-                                <th>Avg Delay (min)</th>
+                                <th>Serie de Unidades</th>
+                                <th>Cantidad</th>
+                                <th>Tipos de Tren</th>
+                                <th>Retraso Promedio (min)</th>
                             </tr>
                         </thead>
                         <tbody id="rollingStockBody">
