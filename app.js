@@ -1,9 +1,10 @@
 // Configuración
 const CONFIG = {
     // Lista de proxies CORS para probar (se usará el primero que funcione)
+    // Orden optimizado: CorsProxy.io suele ser más rápido con APIs restrictivas
     CORS_PROXIES: [
-        'https://api.allorigins.win/raw?url=',
         'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url=',
         'https://api.codetabs.com/v1/proxy?quest=',
         '' // Sin proxy (por si Renfe habilita CORS)
     ],
@@ -51,9 +52,12 @@ const state = {
 async function fetchDataWithFallback(url) {
     let lastError = null;
 
-    // Probar cada proxy en orden
-    for (let i = CONFIG.CURRENT_PROXY_INDEX; i < CONFIG.CORS_PROXIES.length; i++) {
-        const proxy = CONFIG.CORS_PROXIES[i];
+    // Probar cada proxy en orden (siempre empezar desde el preferido)
+    for (let i = 0; i < CONFIG.CORS_PROXIES.length; i++) {
+        // Intentar primero con el proxy preferido, luego el resto
+        const proxyIndex = (CONFIG.CURRENT_PROXY_INDEX + i) % CONFIG.CORS_PROXIES.length;
+        const proxy = CONFIG.CORS_PROXIES[proxyIndex];
+
         try {
             const urlWithCache = url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
 
@@ -61,10 +65,10 @@ async function fetchDataWithFallback(url) {
                 ? proxy + encodeURIComponent(urlWithCache)
                 : urlWithCache;
 
-            console.log(`Intentando con proxy ${i + 1}/${CONFIG.CORS_PROXIES.length}:`, fullUrl);
+            console.log(`Intentando con proxy ${proxyIndex + 1}/${CONFIG.CORS_PROXIES.length}:`, fullUrl.substring(0, 100) + '...');
 
             const response = await fetch(fullUrl, {
-                signal: AbortSignal.timeout(10000) // 10 segundos de timeout
+                signal: AbortSignal.timeout(20000) // 20 segundos de timeout (Renfe puede ser lento)
             });
 
             if (!response.ok) {
@@ -74,21 +78,27 @@ async function fetchDataWithFallback(url) {
             const data = await response.json();
 
             // Éxito! Guardar este proxy como el preferido
-            CONFIG.CURRENT_PROXY_INDEX = i;
-            console.log(`✅ Proxy ${i + 1} funcionando. Datos obtenidos correctamente.`);
+            if (CONFIG.CURRENT_PROXY_INDEX !== proxyIndex) {
+                console.log(`🔄 Cambiando proxy preferido a: ${CONFIG.CORS_PROXIES[proxyIndex] || 'directo'}`);
+                CONFIG.CURRENT_PROXY_INDEX = proxyIndex;
+            }
+            console.log(`✅ Proxy ${proxyIndex + 1} funcionando. Datos obtenidos: ${Array.isArray(data) ? data.length : Object.keys(data).length} elementos`);
 
             return data;
 
         } catch (error) {
             lastError = error;
-            console.warn(`❌ Proxy ${i + 1} falló:`, error.message);
+            console.warn(`❌ Proxy ${proxyIndex + 1} (${CONFIG.CORS_PROXIES[proxyIndex] || 'directo'}) falló:`, error.message);
 
             // Intentar con el siguiente proxy
             continue;
         }
     }
 
-    // Si ningún proxy funcionó, lanzar el último error
+    // Si ningún proxy funcionó, resetear el índice para reintentar desde el principio la próxima vez
+    console.error('⚠️ Todos los proxies fallaron. Se reintentará desde el principio en la próxima actualización.');
+    CONFIG.CURRENT_PROXY_INDEX = 0;
+
     throw new Error(`Todos los proxies fallaron. Último error: ${lastError?.message || 'Desconocido'}`);
 }
 
