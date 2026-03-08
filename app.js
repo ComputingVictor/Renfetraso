@@ -187,6 +187,11 @@ function startPolling() {
 // ============================================================================
 
 function processTimeSeriesData() {
+    if (!state.fleetData || state.fleetData.length === 0) {
+        console.warn('⚠️ No hay datos de trenes para procesar series temporales');
+        return;
+    }
+
     const timestamp = state.lastFetchTime;
 
     // Calculate overall average delay
@@ -213,6 +218,11 @@ function processTimeSeriesData() {
     });
 
     state.timeSeriesData.push(dataPoint);
+    console.log('📊 Serie temporal agregada:', {
+        puntos: state.timeSeriesData.length,
+        retrasoPromedio: avgDelay.toFixed(1),
+        tiposUnicos: Object.keys(delaysByType).length
+    });
 
     // Keep only last 500 points (about 2 hours at 15s intervals)
     if (state.timeSeriesData.length > 500) {
@@ -293,6 +303,9 @@ function updateDelayDistributionChart(delays) {
         state.charts.delayDist.data.datasets[0].data = Object.values(ranges);
         state.charts.delayDist.update();
     } else {
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) existingChart.destroy();
+
         state.charts.delayDist = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -340,6 +353,9 @@ function updateDelayByTypeChart(trains) {
         state.charts.delayByType.data.datasets[0].backgroundColor = colors;
         state.charts.delayByType.update();
     } else {
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) existingChart.destroy();
+
         state.charts.delayByType = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -390,6 +406,9 @@ function updateDelayByCorridorChart(trains) {
         state.charts.delayByCorridor.data.datasets[0].data = data;
         state.charts.delayByCorridor.update();
     } else {
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) existingChart.destroy();
+
         state.charts.delayByCorridor = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -471,6 +490,12 @@ function updateTimeSeriesChart() {
         state.charts.timeSeries.data.datasets = datasets;
         state.charts.timeSeries.update();
     } else {
+        // Destruir cualquier chart existente en este canvas
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
         state.charts.timeSeries = new Chart(ctx, {
             type: 'line',
             data: { datasets },
@@ -783,6 +808,11 @@ function sendNotification(trainId, currentDelay, previousDelay) {
 // ============================================================================
 
 function updateRollingStock() {
+    if (!state.fleetData || state.fleetData.length === 0) {
+        console.warn('⚠️ No hay datos de trenes para analizar material rodante');
+        return;
+    }
+
     // Extract all units
     const units = new Set();
     const unitsByTrain = {};
@@ -798,6 +828,12 @@ function updateRollingStock() {
             }
             unitsByTrain[unit].push(train);
         });
+    });
+
+    console.log('🚂 Material rodante actualizado:', {
+        totalUnidades: units.size,
+        trenesConMaterial: state.fleetData.filter(t => t.mat).length,
+        totalTrenes: state.fleetData.length
     });
 
     document.getElementById('totalUnits').textContent = units.size;
@@ -845,6 +881,9 @@ function updateRollingStock() {
         state.charts.rollingStock.data.datasets[0].data = top15.map(s => s.count);
         state.charts.rollingStock.update();
     } else {
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) existingChart.destroy();
+
         state.charts.rollingStock = new Chart(ctx, {
             type: 'bar',
             data: {
