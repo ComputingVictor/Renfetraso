@@ -149,6 +149,23 @@ CORS_PROXY: 'https://api.codetabs.com/v1/proxy?quest='
 CORS_PROXY: ''
 ```
 
+### 🧪 Herramienta de Diagnóstico
+
+**¿Sigues con problemas? EMPIEZA AQUÍ**:
+
+1. Abre **[test-conexion.html](test-conexion.html)** en tu navegador
+2. Haz clic en "Probar Todos"
+3. Te dirá exactamente qué proxy funciona y cuál usar
+
+### 📚 Documentación Completa de CORS
+
+Para soluciones detalladas, consulta **[SOLUCION_CORS.md](SOLUCION_CORS.md)** que incluye:
+- ✅ Comparación completa de todos los proxies disponibles
+- 🛠️ Cómo montar tu propio proxy CORS (Cloudflare Workers, Node.js)
+- 🔍 Troubleshooting paso a paso con ejemplos
+- ❓ FAQ con respuestas a dudas comunes
+- 🚀 Configuración avanzada con fallback automático de múltiples proxies
+
 ### 🚀 Solución Avanzada: Múltiples Proxies con Fallback
 
 Para tener máxima confiabilidad, usa el archivo [config-alternativo.js](config-alternativo.js) que prueba automáticamente múltiples proxies hasta encontrar uno que funcione.
