@@ -129,11 +129,11 @@ body {
 
 .logo-image {
     width: 100%;
-    max-width: 200px;
+    max-width: 180px;
     height: auto;
     margin: 0 auto 1rem;
     display: block;
-    border-radius: 8px;
+    object-fit: contain;
 }
 
 .logo h1 {
