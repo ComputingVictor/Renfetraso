@@ -45,15 +45,15 @@
 }
 
 [data-theme="light"] {
-    --bg-primary: #f0f4ff;
+    --bg-primary: #e8ecf4;
     --bg-secondary: rgba(255, 255, 255, 0.8);
     --bg-tertiary: rgba(255, 255, 255, 0.6);
     --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --border-color: rgba(15, 23, 42, 0.1);
+    --text-secondary: #334155;
+    --border-color: rgba(15, 23, 42, 0.12);
     --shadow: rgba(0, 0, 0, 0.15);
     --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(15, 23, 42, 0.1);
+    --glass-border: rgba(15, 23, 42, 0.12);
 }
 
 /* ============================================================================
@@ -99,9 +99,9 @@ body::before {
 
 [data-theme="light"] body::before {
     background-image:
-        radial-gradient(ellipse 80% 50% at 15% 10%, rgba(79, 142, 247, 0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 85% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 60%),
-        radial-gradient(rgba(15,23,42,0.035) 1px, transparent 1px);
+        radial-gradient(ellipse 80% 50% at 15% 10%, rgba(79, 142, 247, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 60%),
+        radial-gradient(rgba(15,23,42,0.04) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 28px 28px;
 }
 
@@ -120,7 +120,7 @@ body::before {
     transition: opacity 0.7s ease, visibility 0.7s ease;
 }
 
-[data-theme="light"] .loading-overlay { background: #f0f4ff; }
+[data-theme="light"] .loading-overlay { background: #e8ecf4; }
 
 .loading-overlay.hidden {
     opacity: 0;
@@ -212,7 +212,23 @@ body::before {
 }
 
 [data-theme="light"] .sidebar {
-    background: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.92);
+    border-right: 1px solid rgba(15, 23, 42, 0.15);
+}
+
+[data-theme="light"] .nav-link {
+    color: #475569;
+}
+
+[data-theme="light"] .nav-link:hover {
+    color: #0f172a;
+    background: rgba(79, 142, 247, 0.08);
+}
+
+[data-theme="light"] .nav-link.active {
+    color: #0f172a;
+    background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(168,85,247,0.12));
+    border: 1px solid rgba(79,142,247,0.25);
 }
 
 .logo {
