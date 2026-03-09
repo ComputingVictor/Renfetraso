@@ -243,15 +243,22 @@ function getCorridorName(train) {
     return corridor;
 }
 
+let consecutiveFailures = 0;
+
 function updateStatusIndicator(success) {
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
     if (success) {
+        consecutiveFailures = 0;
         dot.className = 'status-dot live';
         text.textContent = 'EN VIVO';
     } else {
-        dot.className = 'status-dot offline';
-        text.textContent = 'DESCONECTADO';
+        consecutiveFailures++;
+        // Solo muestra DESCONECTADO tras 3 fallos consecutivos (evita alarmas falsas)
+        if (consecutiveFailures >= 3) {
+            dot.className = 'status-dot offline';
+            text.textContent = 'DESCONECTADO';
+        }
     }
 }
 
@@ -364,6 +371,21 @@ function updatePunctualityDashboard() {
 
     // Summary cards
     document.getElementById('totalTrains').textContent = trains.length;
+
+    // Subtítulo del primer KPI: trenes con retraso
+    const delayedCount = delays.filter(d => d > CONFIG.ON_TIME_THRESHOLD).length;
+    const subtitle = document.getElementById('trainsSubtitle');
+    if (subtitle) {
+        subtitle.textContent = delayedCount > 0
+            ? `${delayedCount} con retraso · ${trains.length - delayedCount} a tiempo`
+            : 'Todos a tiempo';
+        subtitle.className = 'card-subtitle' + (delayedCount > 0 ? ' has-delays' : ' all-on-time');
+    }
+
+    // Título dinámico de la pestaña
+    document.title = delayedCount > 0
+        ? `🔴 Renfetraso · ${delayedCount} retrasados`
+        : '✅ Renfetraso · Monitor de Puntualidad';
 
     // Un tren se considera "a tiempo" si tiene menos de CONFIG.ON_TIME_THRESHOLD minutos de retraso
     const onTime = delays.filter(d => d <= CONFIG.ON_TIME_THRESHOLD).length;
@@ -669,21 +691,52 @@ function updateTimeSeriesChart() {
 
 function updateTimeSeriesStats(enabledTypes) {
     const statsDiv = document.getElementById('timeSeriesStats');
-    const stats = enabledTypes.map(type => {
-        const values = state.timeSeriesData
-            .map(dp => dp.byType[type] || 0)
-            .filter(v => v !== undefined);
+    const n = state.timeSeriesData.length;
 
-        if (values.length === 0) return null;
+    if (n === 0) {
+        statsDiv.innerHTML = '<p class="ts-no-data">Sin datos históricos aún — espera unos segundos...</p>';
+        return;
+    }
 
-        const min = Math.min(...values).toFixed(1);
-        const max = Math.max(...values).toFixed(1);
-        const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+    const minutes = n > 1
+        ? Math.round((state.timeSeriesData[n - 1].timestamp - state.timeSeriesData[0].timestamp) / 60000)
+        : 0;
 
-        return `<strong>${type}:</strong> Mín: ${min}, Máx: ${max}, Prom: ${avg}`;
-    }).filter(s => s !== null);
+    const cards = enabledTypes.map(type => {
+        const values = state.timeSeriesData.map(dp => dp.byType[type] || 0);
+        if (values.every(v => v === 0)) return null;
 
-    statsDiv.innerHTML = stats.join(' | ');
+        const current = values[values.length - 1];
+        const prev    = values.length > 1 ? values[values.length - 2] : current;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+        const delta = current - prev;
+        const trendIcon  = delta > 0.1 ? '↑' : delta < -0.1 ? '↓' : '→';
+        const trendClass = delta > 0.1 ? 'trend-up' : delta < -0.1 ? 'trend-down' : 'trend-flat';
+        const valueClass = current <= 5 ? 'good' : current <= 15 ? 'warn' : 'bad';
+
+        return `
+            <div class="ts-stat-card">
+                <div class="ts-stat-type">${type}</div>
+                <div class="ts-stat-current ${valueClass}">
+                    ${current.toFixed(1)}<span class="ts-stat-unit"> min</span>
+                    <span class="ts-trend ${trendClass}">${trendIcon}</span>
+                </div>
+                <div class="ts-stat-meta">
+                    <span title="Mínimo de la sesión"><span class="meta-label">mín</span> ${min.toFixed(1)}</span>
+                    <span title="Promedio de la sesión"><span class="meta-label">prom</span> ${avg.toFixed(1)}</span>
+                    <span title="Máximo de la sesión"><span class="meta-label">máx</span> ${max.toFixed(1)}</span>
+                </div>
+            </div>`;
+    }).filter(c => c !== null);
+
+    statsDiv.innerHTML = `
+        <div class="ts-stats-header">
+            <span><strong>${n}</strong> lecturas · <strong>${minutes}</strong> min de historial</span>
+        </div>
+        <div class="ts-stats-grid">${cards.join('')}</div>`;
 }
 
 // ============================================================================
@@ -906,6 +959,11 @@ function updateDelayedTrains() {
 
     filtered.sort((a, b) => parseInt(b.ultRetraso || 0) - parseInt(a.ultRetraso || 0));
 
+    const countEl = document.getElementById('delayedCount');
+    if (countEl) {
+        countEl.textContent = `${filtered.length} tren${filtered.length !== 1 ? 'es' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`;
+    }
+
     const tbody = document.getElementById('delayedTrainsBody');
     tbody.innerHTML = filtered.map(train => {
         const delay = parseInt(train.ultRetraso || 0);
@@ -1062,25 +1120,34 @@ function updateRollingStock() {
 
     document.getElementById('totalSeries').textContent = Object.keys(seriesData).length;
 
-    // Sort by count
+    // Sort by average delay (descending)
     const seriesList = Object.entries(seriesData)
         .map(([series, data]) => ({
             series,
             count: data.count,
             types: Array.from(data.types).join(', '),
             avgDelay: data.delays.length > 0
-                ? (data.delays.reduce((a, b) => a + b, 0) / data.delays.length).toFixed(1)
+                ? Math.max(0, data.delays.reduce((a, b) => a + b, 0) / data.delays.length).toFixed(1)
                 : 0
         }))
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => parseFloat(b.avgDelay) - parseFloat(a.avgDelay));
 
-    // Update chart
+    // Update chart (top 15 por retraso)
     const top15 = seriesList.slice(0, 15);
     const ctx = document.getElementById('rollingStockChart');
 
+    const delayColors = top15.map(s => {
+        const d = parseFloat(s.avgDelay);
+        if (d <= 5)  return 'rgba(16,185,129,0.75)';
+        if (d <= 15) return 'rgba(245,158,11,0.75)';
+        if (d <= 30) return 'rgba(249,115,22,0.75)';
+        return 'rgba(240,79,79,0.75)';
+    });
+
     if (state.charts.rollingStock) {
-        state.charts.rollingStock.data.labels = top15.map(s => s.series);
-        state.charts.rollingStock.data.datasets[0].data = top15.map(s => s.count);
+        state.charts.rollingStock.data.labels = top15.map(s => s.series + 'xxx');
+        state.charts.rollingStock.data.datasets[0].data = top15.map(s => parseFloat(s.avgDelay));
+        state.charts.rollingStock.data.datasets[0].backgroundColor = delayColors;
         state.charts.rollingStock.update();
     } else {
         const existingChart = Chart.getChart(ctx);
@@ -1089,36 +1156,48 @@ function updateRollingStock() {
         state.charts.rollingStock = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: top15.map(s => s.series),
+                labels: top15.map(s => s.series + 'xxx'),
                 datasets: [{
-                    label: 'Unidades en Servicio',
-                    data: top15.map(s => s.count),
-                    backgroundColor: '#3498db'
+                    label: 'Retraso Promedio (min)',
+                    data: top15.map(s => parseFloat(s.avgDelay)),
+                    backgroundColor: delayColors,
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true }
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Retraso Promedio (min)' }
+                    }
                 }
             }
         });
     }
 
-    // Update table
+    // Update table — ordenada también por retraso
     const tbody = document.getElementById('rollingStockBody');
-    tbody.innerHTML = seriesList.map(s => `
-        <tr>
-            <td>${s.series}xxx</td>
-            <td>${s.count}</td>
-            <td>${s.types}</td>
-            <td>${s.avgDelay}</td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = seriesList.map(s => {
+        const delay = parseFloat(s.avgDelay);
+        const delayClass = delay > 30 ? 'severe-delay' : '';
+        const delayBadge = delay <= 5
+            ? `<span class="delay-tag on-time">${s.avgDelay}</span>`
+            : delay <= 15
+                ? `<span class="delay-tag minor">${s.avgDelay}</span>`
+                : delay <= 30
+                    ? `<span class="delay-tag moderate">${s.avgDelay}</span>`
+                    : `<span class="delay-tag major">${s.avgDelay}</span>`;
+        return `
+            <tr class="${delayClass}">
+                <td>${s.series}xxx</td>
+                <td>${s.count}</td>
+                <td>${s.types}</td>
+                <td>${delayBadge}</td>
+            </tr>`;
+    }).join('');
 }
 
 // ============================================================================
@@ -1190,27 +1269,40 @@ function setupEventListeners() {
     document.documentElement.setAttribute('data-theme', savedTheme);
     themeIcon.textContent = savedTheme === 'light' ? 'light_mode' : 'dark_mode';
 
+    const themeLabel = themeToggle.querySelector('.theme-toggle-label');
+
+    const applyTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        themeIcon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
+        if (themeLabel) themeLabel.textContent = theme === 'light' ? 'Modo claro' : 'Modo oscuro';
+    };
+
+    applyTheme(savedTheme);
+
     themeToggle.addEventListener('click', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-
-        document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        themeIcon.textContent = newTheme === 'light' ? 'light_mode' : 'dark_mode';
-
-        console.log(`Tema cambiado a: ${newTheme}`);
+        applyTheme(newTheme);
     });
+
+    // Logo — vuelve al dashboard al hacer clic
+    const logoHome = document.getElementById('logoHome');
+    if (logoHome) {
+        logoHome.addEventListener('click', () => document.querySelector('[data-section="dashboard"]').click());
+        logoHome.addEventListener('keydown', (e) => { if (e.key === 'Enter') logoHome.click(); });
+    }
 
     // Navigation
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const section = e.target.dataset.section;
+            const section = link.dataset.section;
 
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
-            e.target.classList.add('active');
+            link.classList.add('active');
             document.getElementById(section).classList.add('active');
 
             // Close mobile menu when navigating
