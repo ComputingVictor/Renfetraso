@@ -1,4 +1,4 @@
-const CACHE_NAME = 'renfe-dashboard-v1';
+const CACHE_NAME = 'renfetraso-v1';
 const urlsToCache = [
     '/',
     '/index.html',
