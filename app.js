@@ -170,7 +170,7 @@ async function updateData() {
         updateStatusIndicator(true);
         updateLastUpdateTime();
         processTimeSeriesData();
-        updateAllSections();
+updateAllSections();
         checkWatchedTrains();
 
         // Hide loading overlay on first successful load
@@ -287,6 +287,7 @@ function updateLastUpdateTime() {
 function startPolling() {
     updateData(); // Initial fetch
     state.pollInterval = setInterval(updateData, CONFIG.POLL_INTERVAL);
+
 
     // Check if data is stale
     setInterval(() => {
@@ -1037,9 +1038,12 @@ function updateDelayedTrains() {
                 <td>${delay}</td>
                 <td>${new Date(train.time * 1000).toLocaleTimeString('es-ES')}</td>
                 <td>${train.mat || 'N/D'}</td>
-                <td>
+                <td class="action-cell">
                     <button class="btn-watch" data-train="${train.codComercial}">
                         ${watchBtnText}
+                    </button>
+                    <button class="btn-prob" data-train="${train.codComercial}" data-corridor="${getCorridorName(train)}" title="Ver probabilidad de retraso">
+                        <span class="material-symbols-outlined">query_stats</span>
                     </button>
                 </td>
             </tr>
@@ -1049,7 +1053,7 @@ function updateDelayedTrains() {
     // Add watch button listeners
     document.querySelectorAll('.btn-watch').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const trainId = e.target.dataset.train;
+            const trainId = e.target.closest('[data-train]').dataset.train;
             if (state.watchedTrains.has(trainId)) {
                 state.watchedTrains.delete(trainId);
             } else {
@@ -1057,6 +1061,13 @@ function updateDelayedTrains() {
             }
             updateDelayedTrains();
             updateWatchlist();
+        });
+    });
+
+    // Botones de probabilidad en la tabla de retrasos
+    document.querySelectorAll('.btn-prob').forEach(btn => {
+        btn.addEventListener('click', () => {
+            showDelayProbabilityModal(btn.dataset.train, btn.dataset.corridor);
         });
     });
 
@@ -1529,6 +1540,12 @@ function performTrainSearch(query) {
                         <span>Material: ${material}</span>
                     </div>
                 </div>
+                <div class="search-result-actions">
+                    <button class="btn-prob-search" data-train="${trainId}" data-corridor="${corridor}">
+                        <span class="material-symbols-outlined">query_stats</span>
+                        Ver probabilidad de retraso
+                    </button>
+                </div>
             </div>
         `;
     }).join('');
@@ -1540,6 +1557,201 @@ function performTrainSearch(query) {
             </div>
         `;
     }
+
+    // Botones de probabilidad en los resultados de búsqueda
+    searchResults.querySelectorAll('.btn-prob-search').forEach(btn => {
+        btn.addEventListener('click', () => {
+            showDelayProbabilityModal(btn.dataset.train, btn.dataset.corridor);
+        });
+    });
+}
+
+// ============================================================================
+// MODAL DE PROBABILIDAD DE RETRASO
+// ============================================================================
+
+async function showDelayProbabilityModal(trainId, corridor) {
+    // Crear o reutilizar el modal
+    let modal = document.getElementById('probabilityModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'probabilityModal';
+        modal.className = 'prob-modal-overlay';
+        modal.innerHTML = `
+            <div class="prob-modal">
+                <div class="prob-modal-header">
+                    <h3 id="probModalTitle">
+                        <span class="material-symbols-outlined">analytics</span>
+                        Probabilidad de Retraso
+                    </h3>
+                    <button id="closeProbModal" class="prob-modal-close" aria-label="Cerrar">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div id="probModalBody" class="prob-modal-body">
+                    <div class="prob-loading">
+                        <span class="material-symbols-outlined spinning">refresh</span>
+                        Consultando histórico…
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+        document.getElementById('closeProbModal').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    modal.classList.add('active');
+    document.getElementById('probModalTitle').innerHTML = `
+        <span class="material-symbols-outlined">analytics</span>
+        Probabilidad de Retraso · ${trainId}
+    `;
+    document.getElementById('probModalBody').innerHTML = `
+        <div class="prob-loading">
+            <span class="material-symbols-outlined spinning">refresh</span>
+            Consultando histórico…
+        </div>
+    `;
+
+    const [trainStats, corridorStats] = await Promise.all([
+        getTrainStats(trainId),
+        corridor ? getCorridorStats(corridor) : Promise.resolve(null)
+    ]);
+
+    const dbStats = await getDBStats();
+    const totalRecords = dbStats.total;
+
+    document.getElementById('probModalBody').innerHTML = buildProbModalHTML(
+        trainId, corridor, trainStats, corridorStats, totalRecords
+    );
+}
+
+function buildProbModalHTML(trainId, corridor, trainStats, corridorStats, totalRecords) {
+    const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    function probBadgeClass(p) {
+        if (p === null) return 'prob-unknown';
+        if (p <= 20) return 'prob-low';
+        if (p <= 50) return 'prob-medium';
+        return 'prob-high';
+    }
+
+    function renderStatsBlock(stats, label) {
+        if (!stats) {
+            return `
+                <div class="prob-block prob-block-empty">
+                    <div class="prob-block-label">${label}</div>
+                    <div class="prob-no-data">
+                        <span class="material-symbols-outlined">hourglass_empty</span>
+                        Sin datos aún
+                    </div>
+                </div>
+            `;
+        }
+
+        const pClass = probBadgeClass(stats.probability);
+        const sampleNote = stats.sampleSize === 1
+            ? '1 día registrado'
+            : `${stats.sampleSize} días registrados`;
+
+        // Días de la semana con más retrasos
+        const worstDay = stats.byDayOfWeek
+            .map((d, i) => ({ day: i, pct: d.total > 0 ? (d.delayed / d.total) * 100 : 0, total: d.total }))
+            .filter(d => d.total > 0)
+            .sort((a, b) => b.pct - a.pct);
+
+        const dayBars = worstDay.map(d => `
+            <div class="prob-day-bar">
+                <span class="prob-day-name">${DAY_NAMES[d.day]}</span>
+                <div class="prob-bar-track">
+                    <div class="prob-bar-fill ${probBadgeClass(Math.round(d.pct))}" style="width:${Math.round(d.pct)}%"></div>
+                </div>
+                <span class="prob-day-pct">${Math.round(d.pct)}%</span>
+            </div>
+        `).join('');
+
+        // Últimos 5 viajes
+        const recentRows = stats.recent.slice(0, 5).map(r => {
+            const dateStr = new Date(r.lastSeen).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const delayTxt = r.maxDelay > 5 ? `+${r.maxDelay} min` : 'A tiempo';
+            const delayClass = r.wasDelayed ? 'prob-recent-delayed' : 'prob-recent-ontime';
+            return `
+                <div class="prob-recent-row">
+                    <span class="prob-recent-date">${dateStr}</span>
+                    <span class="prob-recent-delay ${delayClass}">${delayTxt}</span>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="prob-block">
+                <div class="prob-block-label">${label}</div>
+                <div class="prob-main-stat">
+                    <div class="prob-pct-badge ${pClass}">${stats.probability}%</div>
+                    <div class="prob-main-detail">
+                        <div class="prob-main-desc">probabilidad de retraso</div>
+                        <div class="prob-sub-stats">
+                            <span>Retraso medio si ocurre: <strong>~${stats.avgDelayWhenDelayed} min</strong></span>
+                            <span>${sampleNote}</span>
+                        </div>
+                    </div>
+                </div>
+                ${worstDay.length > 0 ? `
+                    <div class="prob-section-title">Por día de la semana</div>
+                    <div class="prob-day-bars">${dayBars}</div>
+                ` : ''}
+                ${stats.recent.length > 0 ? `
+                    <div class="prob-section-title">Últimos viajes registrados</div>
+                    <div class="prob-recent-list">${recentRows}</div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    const noData = !trainStats && !corridorStats;
+    const dbNote = totalRecords > 0
+        ? `<div class="prob-db-note">
+               <span class="material-symbols-outlined">database</span>
+               ${totalRecords} registros en la base de datos compartida
+           </div>`
+        : '';
+
+    if (noData) {
+        const isBackendOff = totalRecords === 0;
+        return `
+            <div class="prob-empty-state">
+                <span class="material-symbols-outlined">${isBackendOff ? 'cloud_off' : 'hourglass_empty'}</span>
+                ${isBackendOff
+                    ? `<p>El servidor de históricos no está disponible.</p>
+                       <p class="prob-hint">Despliega la app en Railway para activar la recogida automática de datos cada 30 minutos.</p>`
+                    : `<p>Todavía no hay datos históricos para este tren.</p>
+                       <p class="prob-hint">El servidor recoge datos cada 30 min. Aparecerán aquí cuando se hayan registrado viajes para este tren.</p>`
+                }
+            </div>
+            ${dbNote}
+        `;
+    }
+
+    return `
+        <div class="prob-subtitle">
+            <span class="material-symbols-outlined">route</span>
+            ${corridor || 'Corredor desconocido'}
+        </div>
+        <div class="prob-blocks-grid">
+            ${renderStatsBlock(trainStats,   `Tren ${trainId}`)}
+            ${renderStatsBlock(corridorStats, `Corredor`)}
+        </div>
+        <div class="prob-disclaimer">
+            <span class="material-symbols-outlined">info</span>
+            Basado en datos recogidos automáticamente cada 30 min desde la API de Renfe. A más días de historial, mayor precisión.
+        </div>
+        ${dbNote}
+    `;
 }
 
 function updateAllSections() {
@@ -1607,7 +1819,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTimeSeriesFromStorage();
     loadStationsData();
     initMap();
-    startPolling();
+    initHistoryDB().then(() => startPolling());
+
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
