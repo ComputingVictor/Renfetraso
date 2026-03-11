@@ -651,19 +651,19 @@ function updateTimeSeries() {
         Object.keys(dp.byType).forEach(type => allTypes.add(type));
     });
 
-    // Create type toggles if not exists
-    if (typeToggles.children.length === 0) {
-        Array.from(allTypes).sort().forEach(type => {
+    // Add new type toggles (supports types appearing after first update)
+    const existingTypes = new Set(
+        Array.from(typeToggles.querySelectorAll('.type-toggle')).map(cb => cb.dataset.type)
+    );
+
+    Array.from(allTypes).sort().forEach(type => {
+        if (!existingTypes.has(type)) {
             const label = document.createElement('label');
             label.innerHTML = `<input type="checkbox" class="type-toggle" data-type="${type}" checked> ${type}`;
             typeToggles.appendChild(label);
-        });
-
-        // Add event listeners
-        document.querySelectorAll('.type-toggle').forEach(cb => {
-            cb.addEventListener('change', updateTimeSeriesChart);
-        });
-    }
+            label.querySelector('input').addEventListener('change', updateTimeSeriesChart);
+        }
+    });
 
     updateTimeSeriesChart();
 }
@@ -705,7 +705,7 @@ function updateTimeSeriesChart() {
             data: { datasets },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 scales: {
                     x: {
                         type: 'time',
