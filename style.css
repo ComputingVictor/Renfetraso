@@ -1562,3 +1562,320 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
     #timeSeriesChart { height: 260px; }
     .chart-container { padding: 0.5rem; }
 }
+
+/* ============================================================================
+   BOTÓN PROBABILIDAD — tabla de retrasos y buscador
+   ============================================================================ */
+
+.action-cell {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-prob {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.28rem 0.4rem;
+    background: transparent;
+    color: var(--accent-purple, #a78bfa);
+    border: 1px solid rgba(167,139,250,0.35);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: inherit;
+    transition: all 0.18s ease;
+    line-height: 1;
+}
+.btn-prob .material-symbols-outlined { font-size: 1rem; }
+.btn-prob:hover {
+    background: rgba(167,139,250,0.15);
+    border-color: var(--accent-purple, #a78bfa);
+    transform: scale(1.05);
+}
+
+.search-result-actions {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+.btn-prob-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    background: transparent;
+    color: var(--accent-purple, #a78bfa);
+    border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.18s ease;
+}
+.btn-prob-search .material-symbols-outlined { font-size: 1rem; }
+.btn-prob-search:hover {
+    background: rgba(167,139,250,0.12);
+    border-color: var(--accent-purple, #a78bfa);
+}
+
+/* ============================================================================
+   MODAL DE PROBABILIDAD
+   ============================================================================ */
+
+.prob-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.prob-modal-overlay.active { display: flex; }
+
+.prob-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+.prob-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.4rem;
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+.prob-modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+.prob-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.prob-modal-close:hover { color: var(--text-primary); }
+
+.prob-modal-body {
+    padding: 1.25rem 1.4rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Loading */
+.prob-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    color: var(--text-secondary);
+    padding: 2rem;
+    font-size: 0.95rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { display: inline-block; animation: spin 1s linear infinite; }
+
+/* Subtítulo corredor */
+.prob-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+.prob-subtitle .material-symbols-outlined { font-size: 1rem; }
+
+/* Grid de dos bloques */
+.prob-blocks-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+@media (max-width: 520px) {
+    .prob-blocks-grid { grid-template-columns: 1fr; }
+}
+
+.prob-block {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+.prob-block-empty {
+    opacity: 0.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    gap: 0.5rem;
+}
+.prob-no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.prob-block-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+/* Estadística principal */
+.prob-main-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+.prob-pct-badge {
+    font-size: 1.9rem;
+    font-weight: 800;
+    border-radius: 10px;
+    padding: 0.3rem 0.65rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.prob-low    { background: rgba(46,204,113,0.15); color: #2ecc71; }
+.prob-medium { background: rgba(243,156,18,0.15); color: #f39c18; }
+.prob-high   { background: rgba(231,76,60,0.15);  color: #e74c3c; }
+.prob-unknown{ background: rgba(149,165,166,0.15);color: #95a5a6; }
+
+.prob-main-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
+}
+.prob-sub-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+.prob-sub-stats strong { color: var(--text-primary); }
+
+/* Días de la semana */
+.prob-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin: 0.75rem 0 0.4rem;
+}
+.prob-day-bars { display: flex; flex-direction: column; gap: 0.3rem; }
+.prob-day-bar {
+    display: grid;
+    grid-template-columns: 2rem 1fr 2.5rem;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.76rem;
+}
+.prob-day-name { color: var(--text-secondary); font-weight: 600; }
+.prob-bar-track {
+    background: var(--glass-border);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+}
+.prob-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.4s ease;
+    min-width: 2px;
+}
+.prob-bar-fill.prob-low    { background: #2ecc71; }
+.prob-bar-fill.prob-medium { background: #f39c18; }
+.prob-bar-fill.prob-high   { background: #e74c3c; }
+.prob-bar-fill.prob-unknown{ background: #95a5a6; }
+.prob-day-pct { color: var(--text-primary); font-weight: 700; text-align: right; }
+
+/* Últimos viajes */
+.prob-recent-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.prob-recent-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--glass-border);
+}
+.prob-recent-row:last-child { border-bottom: none; }
+.prob-recent-date { color: var(--text-secondary); }
+.prob-recent-delayed { color: #e74c3c; font-weight: 700; }
+.prob-recent-ontime  { color: #2ecc71; font-weight: 600; }
+
+/* Disclaimer y nota BD */
+.prob-disclaimer {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: rgba(79,142,247,0.06);
+    border: 1px solid rgba(79,142,247,0.15);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.75rem;
+}
+.prob-disclaimer .material-symbols-outlined { font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }
+
+.prob-db-note {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+.prob-db-note .material-symbols-outlined { font-size: 0.9rem; }
+
+/* Estado vacío */
+.prob-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+    gap: 0.5rem;
+}
+.prob-empty-state .material-symbols-outlined { font-size: 3rem; opacity: 0.4; }
+.prob-empty-state p { margin: 0; font-size: 0.9rem; }
+.prob-hint { font-size: 0.8rem !important; opacity: 0.7; }

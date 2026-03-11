@@ -43,9 +43,11 @@ yarn-error.log*
 # Optional eslint cache
 .eslintcache
 
-# Node modules (if you add build tools later)
+# Node
 node_modules/
 dist/
 build/
+.env
 .claude/settings.local.json
 CLAUDE.md
+.env.example
