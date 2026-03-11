@@ -626,6 +626,8 @@ h3 {
     border-radius: var(--radius);
     padding: 1.5rem;
     transition: border-color 0.2s ease;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .chart-container:hover {
@@ -638,6 +640,7 @@ h3 {
 
 .chart-container canvas {
     max-height: 380px;
+    max-width: 100%;
 }
 
 #delayByTypeChart {
