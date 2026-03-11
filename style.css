@@ -1509,7 +1509,8 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
 @media (max-width: 768px) {
     .mobile-menu-toggle { display: flex; }
 
-    #timeSeriesChart { height: 260px; }
+    #timeSeriesChart { height: 280px; }
+    .chart-container { padding: 0.75rem; }
 
     .sidebar {
         position: fixed;
@@ -1558,4 +1559,6 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
     #mapContainer { height: calc(100vh - 320px); min-height: 320px; }
     .punctuality-items { grid-template-columns: 1fr; }
     #trainSearchInput { font-size: 16px; }
+    #timeSeriesChart { height: 260px; }
+    .chart-container { padding: 0.5rem; }
 }
