@@ -626,7 +626,12 @@ function updateDelayByCorridorChart(trains) {
                 },
                 scales: {
                     x: { beginAtZero: true },
-                    y: { ticks: { autoSkip: false } }
+                    y: {
+                        ticks: { autoSkip: false },
+                        afterFit: function(scale) {
+                            scale.width = 220;
+                        }
+                    }
                 }
             }
         });
