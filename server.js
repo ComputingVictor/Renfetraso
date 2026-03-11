@@ -157,6 +157,15 @@ async function collectData() {
 
 app.use(express.json({ limit: '100kb' }));
 
+// CORS — permite que GitHub Pages (u otros orígenes) llamen a la API
+app.use('/api', (req, res, next) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+});
+
 function cacheFor(seconds) {
     return (_req, res, next) => {
         res.set('Cache-Control', `public, max-age=${seconds}`);

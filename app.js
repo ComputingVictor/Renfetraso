@@ -1,13 +1,14 @@
 // Configuración
 const CONFIG = {
-    // Lista de proxies CORS para probar (se usará el primero que funcione)
-    // Primero el proxy propio del servidor Railway (mismo origen, sin CORS ni límites externos)
+    // Lista de proxies CORS (se usará el primero que funcione).
+    // Si la app se sirve desde GitHub Pages u otro host externo,
+    // define window.RAILWAY_URL ANTES de cargar este script (ver index.html).
     CORS_PROXIES: [
-        '/api/proxy?url=',                          // Proxy propio Railway — prioritario
-        'https://corsproxy.io/?',                   // Fallback externo 1
-        'https://api.allorigins.win/raw?url=',      // Fallback externo 2
-        'https://api.codetabs.com/v1/proxy?quest=', // Fallback externo 3
-        '' // Sin proxy (por si Renfe habilita CORS)
+        (window.RAILWAY_URL || '') + '/api/proxy?url=', // Proxy Railway — prioritario
+        'https://corsproxy.io/?',                       // Fallback externo 1
+        'https://api.allorigins.win/raw?url=',          // Fallback externo 2
+        'https://api.codetabs.com/v1/proxy?quest=',     // Fallback externo 3
+        '' // Sin proxy
     ],
     CURRENT_PROXY_INDEX: 0,
     POLL_INTERVAL: 15000, // 15 segundos

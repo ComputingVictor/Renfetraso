@@ -11,7 +11,14 @@
 // todas las funciones devuelven null y el modal muestra un mensaje informativo.
 // ============================================================================
 
-const API_BASE = ''; // Relativo — funciona en Railway (mismo origen) y en local
+// URL del servidor Railway.
+// - Vacío (''): la app se sirve desde Railway (mismo origen, sin CORS)
+// - URL completa: la app se sirve desde otro host (ej. GitHub Pages)
+//   Cámbialo a tu URL de Railway: 'https://tu-app.up.railway.app'
+const RAILWAY_URL = typeof window !== 'undefined' && window.RAILWAY_URL
+    ? window.RAILWAY_URL
+    : '';
+const API_BASE = RAILWAY_URL;
 
 let backendOnline = false;
 
