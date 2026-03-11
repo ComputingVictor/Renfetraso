@@ -643,6 +643,12 @@ h3 {
     max-width: 100%;
 }
 
+.delay-type-chart-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
 #delayByTypeChart {
     max-height: none !important;
 }

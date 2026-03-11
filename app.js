@@ -512,14 +512,15 @@ function updateDelayByTypeChart(trains) {
     const colors = labels.map(type => TRAIN_TYPE_COLORS[type] || '#95a5a6');
 
     const ctx = document.getElementById('delayByTypeChart');
-    const chartHeight = Math.max(280, labels.length * 32);
-    ctx.style.height = chartHeight + 'px';
+    const wrapper = ctx.closest('.delay-type-chart-wrapper');
+    const rowHeight = window.innerWidth < 480 ? 36 : 32;
+    const chartHeight = Math.max(240, labels.length * rowHeight);
+    wrapper.style.height = chartHeight + 'px';
 
     if (state.charts.delayByType) {
         state.charts.delayByType.data.labels = labels;
         state.charts.delayByType.data.datasets[0].data = avgDelays;
         state.charts.delayByType.data.datasets[0].backgroundColor = colors;
-        state.charts.delayByType.resize(ctx.offsetWidth, chartHeight);
         state.charts.delayByType.update();
     } else {
         const existingChart = Chart.getChart(ctx);
@@ -540,10 +541,24 @@ function updateDelayByTypeChart(trains) {
                 maintainAspectRatio: false,
                 indexAxis: 'y',
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => labels[items[0].dataIndex]
+                        }
+                    }
                 },
                 scales: {
-                    x: { beginAtZero: true }
+                    x: { beginAtZero: true },
+                    y: {
+                        ticks: {
+                            font: { size: 12 },
+                            callback: function(val, index) {
+                                const label = labels[index] || String(val);
+                                return label.length > 15 ? label.slice(0, 14) + '…' : label;
+                            }
+                        }
+                    }
                 }
             }
         });
