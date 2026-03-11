@@ -512,10 +512,14 @@ function updateDelayByTypeChart(trains) {
     const colors = labels.map(type => TRAIN_TYPE_COLORS[type] || '#95a5a6');
 
     const ctx = document.getElementById('delayByTypeChart');
+    const chartHeight = Math.max(280, labels.length * 32);
+    ctx.style.height = chartHeight + 'px';
+
     if (state.charts.delayByType) {
         state.charts.delayByType.data.labels = labels;
         state.charts.delayByType.data.datasets[0].data = avgDelays;
         state.charts.delayByType.data.datasets[0].backgroundColor = colors;
+        state.charts.delayByType.resize(ctx.offsetWidth, chartHeight);
         state.charts.delayByType.update();
     } else {
         const existingChart = Chart.getChart(ctx);
@@ -533,7 +537,7 @@ function updateDelayByTypeChart(trains) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 indexAxis: 'y',
                 plugins: {
                     legend: { display: false }
