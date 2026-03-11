@@ -1,13 +1,11 @@
 // Configuración
 const CONFIG = {
     // Lista de proxies CORS (se usará el primero que funcione).
-    // Si la app se sirve desde GitHub Pages u otro host externo,
-    // define window.RAILWAY_URL ANTES de cargar este script (ver index.html).
     CORS_PROXIES: [
-        (window.RAILWAY_URL || '') + '/api/proxy?url=', // Proxy Railway — prioritario
-        'https://corsproxy.io/?',                       // Fallback externo 1
-        'https://api.allorigins.win/raw?url=',          // Fallback externo 2
-        'https://api.codetabs.com/v1/proxy?quest=',     // Fallback externo 3
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://corsproxy.io/?',
+        'https://thingproxy.freeboard.io/fetch/',
         '' // Sin proxy
     ],
     CURRENT_PROXY_INDEX: 0,
@@ -112,7 +110,7 @@ async function fetchDataWithFallback(url) {
             console.log(`Intentando con proxy ${proxyIndex + 1}/${CONFIG.CORS_PROXIES.length}:`, fullUrl.substring(0, 100) + '...');
 
             const response = await fetch(fullUrl, {
-                signal: AbortSignal.timeout(8000) // 8 segundos por proxy
+                signal: AbortSignal.timeout(6000) // 6 segundos por proxy
             });
 
             if (!response.ok) {
