@@ -2,10 +2,11 @@
 const CONFIG = {
     // Lista de proxies CORS (se usará el primero que funcione).
     CORS_PROXIES: [
-        'https://api.allorigins.win/raw?url=',
-        'https://api.codetabs.com/v1/proxy?quest=',
-        'https://corsproxy.io/?',
-        'https://thingproxy.freeboard.io/fetch/',
+        'https://renfe-proxy.vvictor-97.workers.dev/?url=', // Cloudflare Worker — prioritario
+        'https://api.allorigins.win/raw?url=',              // Fallback 1
+        'https://api.codetabs.com/v1/proxy?quest=',         // Fallback 2
+        'https://corsproxy.io/?',                           // Fallback 3
+        'https://thingproxy.freeboard.io/fetch/',           // Fallback 4
         '' // Sin proxy
     ],
     CURRENT_PROXY_INDEX: 0,
