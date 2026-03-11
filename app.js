@@ -110,7 +110,7 @@ async function fetchDataWithFallback(url) {
             console.log(`Intentando con proxy ${proxyIndex + 1}/${CONFIG.CORS_PROXIES.length}:`, fullUrl.substring(0, 100) + '...');
 
             const response = await fetch(fullUrl, {
-                signal: AbortSignal.timeout(20000) // 20 segundos de timeout (Renfe puede ser lento)
+                signal: AbortSignal.timeout(8000) // 8 segundos por proxy
             });
 
             if (!response.ok) {
@@ -187,6 +187,20 @@ async function updateData() {
     } catch (error) {
         console.error('Error al obtener datos:', error);
         updateStatusIndicator(false);
+
+        // Ocultar el overlay aunque falle la carga inicial
+        if (!state.initialLoadComplete) {
+            state.initialLoadComplete = true;
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                const loadingText = overlay.querySelector('.loading-text');
+                if (loadingText) loadingText.textContent = 'Sin conexión con Renfe. Reintentando…';
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    setTimeout(() => overlay.remove(), 500);
+                }, 2000);
+            }
+        }
     }
 }
 
@@ -605,13 +619,14 @@ function updateDelayByCorridorChart(trains) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 indexAxis: 'y',
                 plugins: {
                     legend: { display: false }
                 },
                 scales: {
-                    x: { beginAtZero: true }
+                    x: { beginAtZero: true },
+                    y: { ticks: { autoSkip: false } }
                 }
             }
         });

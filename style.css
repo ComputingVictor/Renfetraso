@@ -643,6 +643,11 @@ h3 {
     max-width: 100%;
 }
 
+#delayByCorridorChart {
+    height: 420px !important;
+    max-height: none;
+}
+
 .delay-type-chart-wrapper {
     position: relative;
     width: 100%;
