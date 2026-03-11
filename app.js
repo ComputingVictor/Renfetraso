@@ -605,13 +605,14 @@ function updateDelayByCorridorChart(trains) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 indexAxis: 'y',
                 plugins: {
                     legend: { display: false }
                 },
                 scales: {
-                    x: { beginAtZero: true }
+                    x: { beginAtZero: true },
+                    y: { ticks: { autoSkip: false } }
                 }
             }
         });
