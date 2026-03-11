@@ -1,11 +1,12 @@
 // Configuración
 const CONFIG = {
     // Lista de proxies CORS para probar (se usará el primero que funcione)
-    // Orden optimizado: CorsProxy.io suele ser más rápido con APIs restrictivas
+    // Primero el proxy propio del servidor Railway (mismo origen, sin CORS ni límites externos)
     CORS_PROXIES: [
-        'https://corsproxy.io/?',
-        'https://api.allorigins.win/raw?url=',
-        'https://api.codetabs.com/v1/proxy?quest=',
+        '/api/proxy?url=',                          // Proxy propio Railway — prioritario
+        'https://corsproxy.io/?',                   // Fallback externo 1
+        'https://api.allorigins.win/raw?url=',      // Fallback externo 2
+        'https://api.codetabs.com/v1/proxy?quest=', // Fallback externo 3
         '' // Sin proxy (por si Renfe habilita CORS)
     ],
     CURRENT_PROXY_INDEX: 0,

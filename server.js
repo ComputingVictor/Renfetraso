@@ -173,6 +173,43 @@ app.use(express.static(path.join(__dirname), {
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
+const ALLOWED_PROXY_HOST = 'tiempo-real.largorecorrido.renfe.com';
+
+/**
+ * GET /api/proxy?url=...
+ * Proxy seguro para la API de Renfe: el navegador lo llama en el mismo origen
+ * (sin CORS), y el servidor lo reenvía a Renfe sin restricciones.
+ * Solo permite URLs del dominio oficial de Renfe.
+ */
+app.get('/api/proxy', async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'Falta el parámetro url' });
+
+    let parsed;
+    try { parsed = new URL(url); } catch {
+        return res.status(400).json({ error: 'URL inválida' });
+    }
+    if (parsed.hostname !== ALLOWED_PROXY_HOST) {
+        return res.status(403).json({ error: 'URL no permitida' });
+    }
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Renfetraso/1.0)',
+                'Accept':     'application/json'
+            },
+            signal: AbortSignal.timeout(12000)
+        });
+        if (!response.ok) return res.status(response.status).json({ error: `Renfe devolvió ${response.status}` });
+        const data = await response.json();
+        res.set('Cache-Control', 'no-store');
+        res.json(data);
+    } catch (err) {
+        res.status(502).json({ error: err.message });
+    }
+});
+
 /**
  * GET /api/info
  * Total de registros en la BD y estado del colector.
