@@ -700,6 +700,7 @@ function updateTimeSeriesChart() {
             existingChart.destroy();
         }
 
+        const isMobile = window.innerWidth < 768;
         state.charts.timeSeries = new Chart(ctx, {
             type: 'line',
             data: { datasets },
@@ -710,15 +711,33 @@ function updateTimeSeriesChart() {
                     x: {
                         type: 'time',
                         time: { unit: 'minute' },
-                        title: { display: true, text: 'Tiempo' }
+                        title: { display: !isMobile, text: 'Tiempo' },
+                        ticks: {
+                            maxTicksLimit: isMobile ? 5 : 10,
+                            maxRotation: isMobile ? 45 : 0,
+                            minRotation: 0,
+                            font: { size: isMobile ? 10 : 12 }
+                        }
                     },
                     y: {
                         beginAtZero: true,
-                        title: { display: true, text: 'Retraso Promedio (min)' }
+                        title: {
+                            display: true,
+                            text: isMobile ? 'Retraso (min)' : 'Retraso Promedio (min)',
+                            font: { size: isMobile ? 10 : 12 }
+                        },
+                        ticks: { font: { size: isMobile ? 10 : 12 } }
                     }
                 },
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: isMobile ? 12 : 20,
+                            font: { size: isMobile ? 10 : 12 },
+                            padding: isMobile ? 8 : 10
+                        }
+                    }
                 }
             }
         });
