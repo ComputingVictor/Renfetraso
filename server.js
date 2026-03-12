@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path     = require('path');
+const fs       = require('fs');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,43 @@ const TRAIN_TYPES = {
    17: 'Cercanías',      18: 'Regional',  19: 'Regional Express',
    20: 'Alaris',         25: 'AVE TGV',   28: 'AVLO',      29: 'Trenhotel Lusitania'
 };
+
+// ── Mapa de estaciones ───────────────────────────────────────────────────────
+
+let stationMap = {};
+
+function loadStationMap() {
+    try {
+        const raw     = fs.readFileSync(path.join(__dirname, 'estaciones.geojson'), 'utf8');
+        const geojson = JSON.parse(raw);
+        if (geojson.features) {
+            geojson.features.forEach(f => {
+                const code = f.properties.CODIGO;
+                const name = f.properties.NOMBRE;
+                if (code && name) stationMap[code] = name;
+            });
+        }
+        console.log(`✅ ${Object.keys(stationMap).length} estaciones cargadas`);
+    } catch (err) {
+        console.warn('⚠️ No se pudo cargar estaciones.geojson:', err.message);
+    }
+}
+
+/** Igual que getCorridorName() en app.js — resuelve códigos LMD/etc. a nombres legibles */
+function resolveCorridorName(train) {
+    const corridor = train.desCorridor || '';
+    if (!corridor || /^[A-Z]{2,3}\d+/.test(corridor)) {
+        const originCode = parseInt(train.codOrigen);
+        const destCode   = parseInt(train.codDestino);
+        if (originCode && destCode) {
+            const originName = stationMap[originCode];
+            const destName   = stationMap[destCode];
+            if (originName && destName) return `${originName} - ${destName}`;
+        }
+        return corridor || `${train.codOrigen || ''}-${train.codDestino || ''}`;
+    }
+    return corridor;
+}
 
 // Estado del colector (para el endpoint /api/collector/status)
 const collectorStatus = {
@@ -58,6 +96,42 @@ async function initDB() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_corridor ON trip_records(corridor)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_date     ON trip_records(date)`);
     console.log('✅ Base de datos lista');
+}
+
+/** Corrige registros existentes cuyo corredor es un código (ej. LMD71234) */
+async function fixExistingCorridors() {
+    if (Object.keys(stationMap).length === 0) return;
+
+    const res = await pool.query(`
+        SELECT id, origin_code, dest_code
+        FROM trip_records
+        WHERE corridor ~ '^[A-Z]{2,3}[0-9]+'
+    `);
+    if (res.rowCount === 0) return;
+
+    const client = await pool.connect();
+    let fixed = 0;
+    try {
+        await client.query('BEGIN');
+        for (const row of res.rows) {
+            const originName = stationMap[row.origin_code];
+            const destName   = stationMap[row.dest_code];
+            if (originName && destName) {
+                await client.query(
+                    'UPDATE trip_records SET corridor = $1 WHERE id = $2',
+                    [`${originName} - ${destName}`, row.id]
+                );
+                fixed++;
+            }
+        }
+        await client.query('COMMIT');
+        if (fixed > 0) console.log(`✅ ${fixed} corredores corregidos en BD`);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('❌ Error al corregir corredores:', err.message);
+    } finally {
+        client.release();
+    }
 }
 
 // ── Colector de datos ────────────────────────────────────────────────────────
@@ -110,7 +184,7 @@ async function collectData() {
             const delay     = parseInt(train.ultRetraso || 0);
             const id        = `${trainId}_${dateStr}`;
             const trainType = TRAIN_TYPES[train.codProduct] || 'Desconocido';
-            const corridor  = train.desCorridor || `${train.codOrigen || ''}-${train.codDestino || ''}`;
+            const corridor  = resolveCorridorName(train);
 
             await client.query(`
                 INSERT INTO trip_records
@@ -118,6 +192,7 @@ async function collectData() {
                      date, day_of_week, first_seen, last_seen, max_delay, final_delay, was_delayed)
                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
                 ON CONFLICT (id) DO UPDATE SET
+                    corridor    = EXCLUDED.corridor,
                     last_seen   = GREATEST(trip_records.last_seen,  EXCLUDED.last_seen),
                     first_seen  = LEAST   (trip_records.first_seen, EXCLUDED.first_seen),
                     max_delay   = GREATEST(trip_records.max_delay,  EXCLUDED.max_delay),
@@ -432,8 +507,13 @@ async function pruneOldData() {
 
 // ── Arranque ─────────────────────────────────────────────────────────────────
 
+loadStationMap();
+
 initDB()
     .then(async () => {
+        // Corregir corredores mal almacenados en BD
+        await fixExistingCorridors();
+
         // Primera recolección inmediata
         await collectData();
 
