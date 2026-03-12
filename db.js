@@ -82,6 +82,30 @@ async function getDBStats() {
     return { total: 0 };
 }
 
+async function getAllCorridorStats() {
+    if (!backendOnline) return null;
+    try {
+        const res = await fetch(`${API_BASE}/api/stats/corridors`, { signal: AbortSignal.timeout(8000) });
+        if (res.ok) return await res.json();
+        throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+        console.warn('getAllCorridorStats error:', err.message);
+        return null;
+    }
+}
+
+async function getHistoricalSummary() {
+    if (!backendOnline) return null;
+    try {
+        const res = await fetch(`${API_BASE}/api/stats/summary`, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) return await res.json();
+        throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+        console.warn('getHistoricalSummary error:', err.message);
+        return null;
+    }
+}
+
 // Estas funciones ya no hacen nada — el servidor recoge los datos por su cuenta.
 // Se mantienen para no romper las llamadas en app.js.
 function updateTripCache() {}

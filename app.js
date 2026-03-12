@@ -1384,6 +1384,11 @@ function setupEventListeners() {
             if (section === 'map' && state.map) {
                 setTimeout(() => state.map.resize(), 100);
             }
+
+            // Load historical tab on first visit
+            if (section === 'historical') {
+                loadHistorical();
+            }
         });
     });
 
@@ -1809,6 +1814,165 @@ function exportTimeSeriesCSV() {
     document.body.removeChild(link);
 
     console.log(`📊 Exportados ${state.timeSeriesData.length} puntos de datos a ${filename}`);
+}
+
+// ============================================================================
+// ============================================================================
+// HISTÓRICO
+// ============================================================================
+
+const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+let historicalLoaded = false;
+
+function probColor(pct) {
+    if (pct < 20) return '#22c55e';
+    if (pct < 40) return '#84cc16';
+    if (pct < 60) return '#f59e0b';
+    if (pct < 80) return '#f97316';
+    return '#ef4444';
+}
+
+async function loadHistorical() {
+    if (historicalLoaded) return;
+
+    const [summary, corridors] = await Promise.all([
+        getHistoricalSummary(),
+        getAllCorridorStats()
+    ]);
+
+    if (!summary || !corridors) {
+        renderHistoricalNoBackend();
+        return;
+    }
+
+    historicalLoaded = true;
+    renderHistoricalKpis(summary);
+    renderHistoricalToday(corridors);
+    renderHistoricalTable(corridors);
+}
+
+function renderHistoricalNoBackend() {
+    const noBackend = `
+        <div class="hist-no-backend">
+            <span class="material-symbols-outlined">cloud_off</span>
+            <h4>Backend no disponible</h4>
+            <p>El servidor de datos históricos no está accesible. Los datos se recogen automáticamente cada 30 minutos desde Railway.</p>
+        </div>`;
+    document.getElementById('histSubtitle').textContent = 'Sin conexión con el servidor';
+    document.getElementById('histToday').innerHTML = '';
+    document.getElementById('histTableBody').innerHTML = noBackend;
+}
+
+function renderHistoricalKpis(summary) {
+    const total    = summary.total_records   || 0;
+    const delayed  = summary.total_delayed   || 0;
+    const rate     = total > 0 ? Math.round(delayed / total * 100) : 0;
+    const avgDelay = parseFloat(summary.avg_delay_when_delayed) || 0;
+
+    document.getElementById('histTotalRecords').textContent   = total.toLocaleString('es-ES');
+    document.getElementById('histTotalCorridors').textContent = summary.total_corridors || 0;
+    document.getElementById('histDelayRate').textContent      = `${rate}%`;
+    document.getElementById('histAvgDelay').textContent       = avgDelay > 0 ? `${avgDelay} min` : '—';
+
+    let subtitle = `${total.toLocaleString('es-ES')} viajes registrados`;
+    if (summary.oldest_date) subtitle += ` · desde ${summary.oldest_date}`;
+    document.getElementById('histSubtitle').textContent = subtitle;
+}
+
+function renderHistoricalToday(corridors) {
+    const dow     = new Date().getDay();
+    const dayName = DAYS_ES[dow];
+
+    // Top 8 corredores con más muestras para hoy
+    const withToday = corridors
+        .filter(c => c.byDayOfWeek[dow].total >= 2)
+        .sort((a, b) => b.byDayOfWeek[dow].total - a.byDayOfWeek[dow].total)
+        .slice(0, 8);
+
+    if (withToday.length === 0) {
+        document.getElementById('histToday').innerHTML = '';
+        return;
+    }
+
+    const cards = withToday.map(c => {
+        const day      = c.byDayOfWeek[dow];
+        const prob     = Math.round(day.delayed / day.total * 100);
+        const color    = probColor(prob);
+        const avgDelay = c.avgDelayWhenDelayed;
+
+        return `
+        <div class="hist-today-card">
+            <div class="corridor-name" title="${c.corridor}">${c.corridor}</div>
+            <div class="corridor-type">${c.trainType || ''}</div>
+            <div class="today-prob-row">
+                <span class="today-prob-label" style="color:${color}">${prob}%</span>
+                <div class="today-prob-bar-wrap">
+                    <div class="today-prob-bar" style="width:${prob}%;background:${color}"></div>
+                </div>
+            </div>
+            <div class="today-delay-hint">
+                ${prob > 0 && avgDelay > 0 ? `Retraso esperado ~${avgDelay} min · ` : ''}${day.total} registros los ${dayName}
+            </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('histToday').innerHTML = `
+        <h3>
+            <span class="material-symbols-outlined">today</span>
+            ¿Qué esperar hoy? (${dayName})
+        </h3>
+        <div class="hist-today-grid">${cards}</div>`;
+}
+
+function renderHistoricalTable(corridors) {
+    const dow = new Date().getDay();
+
+    const header = `
+        <div class="hist-row-header">
+            <span>Corredor</span>
+            <span>Tipo</span>
+            <span style="text-align:center">Viajes</span>
+            <span>Prob. retraso</span>
+            <span style="text-align:right">Retraso medio</span>
+            <span style="text-align:right">Hoy (${DAYS_ES[dow]})</span>
+        </div>`;
+
+    function buildRows(list) {
+        if (list.length === 0) return '<div class="no-data" style="padding:2rem">Sin resultados</div>';
+        return list.map(c => {
+            const color    = probColor(c.probability);
+            const day      = c.byDayOfWeek[dow];
+            const todayPct = day.total >= 2 ? Math.round(day.delayed / day.total * 100) : null;
+            const todayBadge = todayPct !== null
+                ? `<span class="today-badge" style="background:${probColor(todayPct)}">${todayPct}%</span>`
+                : `<span class="today-badge no-data">—</span>`;
+
+            return `
+            <div class="hist-row">
+                <span class="corridor-name" title="${c.corridor}">${c.corridor}</span>
+                <span class="corridor-type-tag">${c.trainType || '—'}</span>
+                <span class="sample-size">${c.sampleSize}</span>
+                <span class="prob-cell">
+                    <span class="prob-badge" style="background:${color}">${c.probability}%</span>
+                </span>
+                <span class="delay-avg">${c.avgDelayWhenDelayed > 0 ? c.avgDelayWhenDelayed + ' min' : '—'}</span>
+                <span class="today-cell">${todayBadge}</span>
+            </div>`;
+        }).join('');
+    }
+
+    const body = document.getElementById('histTableBody');
+    body.innerHTML = header + buildRows(corridors);
+
+    // Búsqueda en tiempo real
+    document.getElementById('histSearch').addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        const filtered = q
+            ? corridors.filter(c => c.corridor.toLowerCase().includes(q))
+            : corridors;
+        body.innerHTML = header + buildRows(filtered);
+    });
 }
 
 // ============================================================================

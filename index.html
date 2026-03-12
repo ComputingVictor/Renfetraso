@@ -102,6 +102,12 @@
                         <span>Material Rodante</span>
                     </a>
                 </li>
+                <li>
+                    <a href="#historical" class="nav-link" data-section="historical">
+                        <span class="material-symbols-outlined" aria-hidden="true">history</span>
+                        <span>Histórico</span>
+                    </a>
+                </li>
             </ul>
 
         </nav>
@@ -390,6 +396,57 @@
                         </thead>
                         <tbody id="rollingStockBody"></tbody>
                     </table>
+                </div>
+
+            </section>
+
+            <!-- ── § 6: HISTÓRICO ── -->
+            <section id="historical" class="section">
+
+                <div class="section-header">
+                    <h2>Histórico de Puntualidad</h2>
+                    <p class="section-subtitle" id="histSubtitle">Cargando datos históricos…</p>
+                </div>
+
+                <!-- KPIs -->
+                <div class="summary-cards bento-grid">
+                    <div class="card">
+                        <div class="card-icon"><span class="material-symbols-outlined">database</span></div>
+                        <div class="card-value" id="histTotalRecords">—</div>
+                        <div class="card-label">Viajes registrados</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><span class="material-symbols-outlined">route</span></div>
+                        <div class="card-value" id="histTotalCorridors">—</div>
+                        <div class="card-label">Corredores</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><span class="material-symbols-outlined">running_with_errors</span></div>
+                        <div class="card-value" id="histDelayRate">—</div>
+                        <div class="card-label">% viajes con retraso</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><span class="material-symbols-outlined">timer</span></div>
+                        <div class="card-value" id="histAvgDelay">—</div>
+                        <div class="card-label">Retraso medio (cuando lo hay)</div>
+                    </div>
+                </div>
+
+                <!-- ¿Qué esperar hoy? -->
+                <div id="histToday" class="hist-today"></div>
+
+                <!-- Tabla de corredores -->
+                <div class="hist-table-wrap">
+                    <div class="hist-table-header">
+                        <h3>
+                            <span class="material-symbols-outlined">table_view</span>
+                            Todos los corredores
+                        </h3>
+                        <input type="text" id="histSearch" class="hist-search" placeholder="Buscar corredor…">
+                    </div>
+                    <div id="histTableBody" class="hist-table-body">
+                        <div class="no-data">Cargando…</div>
+                    </div>
                 </div>
 
             </section>

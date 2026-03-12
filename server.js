@@ -334,6 +334,85 @@ async function computeStats(column, value) {
     };
 }
 
+/**
+ * GET /api/stats/summary
+ * Resumen global del histórico.
+ */
+app.get('/api/stats/summary', cacheFor(300), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                COUNT(*)::int                                                  AS total_records,
+                COUNT(DISTINCT corridor)::int                                  AS total_corridors,
+                COUNT(*) FILTER (WHERE was_delayed)::int                      AS total_delayed,
+                MIN(date)::text                                                AS oldest_date,
+                MAX(date)::text                                                AS newest_date,
+                ROUND(AVG(max_delay) FILTER (WHERE was_delayed)::numeric, 1)  AS avg_delay_when_delayed
+            FROM trip_records
+        `);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('GET /api/stats/summary:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+/**
+ * GET /api/stats/corridors
+ * Estadísticas por corredor con desglose por día de la semana.
+ */
+app.get('/api/stats/corridors', cacheFor(300), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                corridor,
+                MAX(train_type)                                                         AS train_type,
+                COUNT(*)::int                                                           AS sample_size,
+                COUNT(*) FILTER (WHERE was_delayed)::int                               AS delayed_count,
+                ROUND(AVG(max_delay) FILTER (WHERE was_delayed)::numeric, 1)           AS avg_delay_when_delayed,
+                ROUND(AVG(max_delay)::numeric, 1)                                      AS overall_avg_delay,
+                COUNT(*) FILTER (WHERE day_of_week = 0)::int                           AS d0t,
+                COUNT(*) FILTER (WHERE day_of_week = 0 AND was_delayed)::int           AS d0d,
+                COUNT(*) FILTER (WHERE day_of_week = 1)::int                           AS d1t,
+                COUNT(*) FILTER (WHERE day_of_week = 1 AND was_delayed)::int           AS d1d,
+                COUNT(*) FILTER (WHERE day_of_week = 2)::int                           AS d2t,
+                COUNT(*) FILTER (WHERE day_of_week = 2 AND was_delayed)::int           AS d2d,
+                COUNT(*) FILTER (WHERE day_of_week = 3)::int                           AS d3t,
+                COUNT(*) FILTER (WHERE day_of_week = 3 AND was_delayed)::int           AS d3d,
+                COUNT(*) FILTER (WHERE day_of_week = 4)::int                           AS d4t,
+                COUNT(*) FILTER (WHERE day_of_week = 4 AND was_delayed)::int           AS d4d,
+                COUNT(*) FILTER (WHERE day_of_week = 5)::int                           AS d5t,
+                COUNT(*) FILTER (WHERE day_of_week = 5 AND was_delayed)::int           AS d5d,
+                COUNT(*) FILTER (WHERE day_of_week = 6)::int                           AS d6t,
+                COUNT(*) FILTER (WHERE day_of_week = 6 AND was_delayed)::int           AS d6d
+            FROM trip_records
+            WHERE corridor IS NOT NULL AND corridor != ''
+            GROUP BY corridor
+            HAVING COUNT(*) >= 2
+            ORDER BY (COUNT(*) FILTER (WHERE was_delayed))::float / NULLIF(COUNT(*), 0) DESC
+        `);
+
+        const corridors = result.rows.map(row => ({
+            corridor:            row.corridor,
+            trainType:           row.train_type,
+            sampleSize:          row.sample_size,
+            delayedCount:        row.delayed_count,
+            probability:         row.sample_size > 0 ? Math.round(row.delayed_count / row.sample_size * 100) : 0,
+            avgDelayWhenDelayed: parseFloat(row.avg_delay_when_delayed) || 0,
+            overallAvgDelay:     parseFloat(row.overall_avg_delay)      || 0,
+            byDayOfWeek:         [0,1,2,3,4,5,6].map(d => ({
+                total:   row[`d${d}t`] || 0,
+                delayed: row[`d${d}d`] || 0
+            }))
+        }));
+
+        res.json(corridors);
+    } catch (err) {
+        console.error('GET /api/stats/corridors:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 // ── Mantenimiento ────────────────────────────────────────────────────────────
 
 /** Borra registros con más de 365 días (1 año de historial) */
