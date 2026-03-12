@@ -1895,14 +1895,15 @@ function renderHistoricalToday(corridors) {
         return 'En este corredor el horario es solo una propuesta creativa.';
     }
 
-    // Todos los corredores con datos para hoy (mínimo 2 muestras)
+    // Todos los corredores con datos para hoy (mínimo 2 muestras), mayor prob primero
     const withToday = corridors
         .filter(c => c.byDayOfWeek[dow].total >= 2)
         .map(c => {
             const d    = c.byDayOfWeek[dow];
             const prob = d.total > 0 ? Math.round(d.delayed / d.total * 100) : 0;
             return { ...c, todayProb: prob, todayTotal: d.total };
-        });
+        })
+        .sort((a, b) => b.todayProb - a.todayProb);
 
     if (withToday.length === 0) {
         document.getElementById('histToday').innerHTML = '';
