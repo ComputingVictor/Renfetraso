@@ -2083,6 +2083,9 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
     font-weight: 400;
 }
 
+/* Línea resumen móvil — oculta en desktop */
+.hist-row-mobile { display: none; }
+
 /* ── Estado vacío / sin backend ── */
 .hist-no-backend {
     display: flex;
@@ -2097,13 +2100,50 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
 .hist-no-backend h4 { margin: 0; font-size: 1rem; color: var(--text-primary); }
 .hist-no-backend p  { margin: 0; font-size: 0.85rem; max-width: 380px; }
 
+/* ── Móvil grande (≤768px) ── */
 @media (max-width: 768px) {
     .hist-today-grid { grid-template-columns: 1fr 1fr; }
-    .hist-row-header,
-    .hist-row { grid-template-columns: 2fr 80px 90px 90px; }
-    .hist-row-header > :nth-child(2),
-    .hist-row > :nth-child(2) { display: none; } /* ocultar tipo en móvil */
-    .hist-row-header > :nth-child(6),
-    .hist-row > :nth-child(6) { display: none; } /* ocultar hoy en móvil */
-    .hist-search { width: 160px; }
+    .hist-table-header { gap: 0.6rem; }
+    .hist-search { width: 100%; }
+}
+
+/* ── Móvil pequeño (≤600px): filas como tarjetas ── */
+@media (max-width: 600px) {
+    .hist-today-grid { grid-template-columns: 1fr; }
+
+    /* Ocultar cabecera de tabla */
+    .hist-row-header { display: none; }
+
+    /* Cada fila se convierte en tarjeta apilada */
+    .hist-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    /* Nombre del corredor ocupa toda la línea */
+    .hist-row .corridor-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        white-space: normal;
+        overflow: visible;
+    }
+    /* Fila secundaria: badge prob + info compacta */
+    .hist-row .prob-cell,
+    .hist-row .corridor-type-tag,
+    .hist-row .sample-size,
+    .hist-row .delay-avg,
+    .hist-row .today-cell { display: none; }
+
+    /* Mostrar la línea resumen móvil */
+    .hist-row-mobile { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .hist-row-mobile-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+    }
 }

@@ -1948,6 +1948,7 @@ function renderHistoricalTable(corridors) {
                 ? `<span class="today-badge" style="background:${probColor(todayPct)}">${todayPct}%</span>`
                 : `<span class="today-badge no-data">—</span>`;
 
+            const delayText = c.avgDelayWhenDelayed > 0 ? `~${c.avgDelayWhenDelayed} min` : '';
             return `
             <div class="hist-row">
                 <span class="corridor-name" title="${c.corridor}">${c.corridor}</span>
@@ -1956,8 +1957,17 @@ function renderHistoricalTable(corridors) {
                 <span class="prob-cell">
                     <span class="prob-badge" style="background:${color}">${c.probability}%</span>
                 </span>
-                <span class="delay-avg">${c.avgDelayWhenDelayed > 0 ? c.avgDelayWhenDelayed + ' min' : '—'}</span>
+                <span class="delay-avg">${delayText || '—'}</span>
                 <span class="today-cell">${todayBadge}</span>
+                <span class="hist-row-mobile">
+                    <span class="prob-badge" style="background:${color}">${c.probability}%</span>
+                    <span class="hist-row-mobile-detail">
+                        ${c.trainType ? `<span class="corridor-type-tag">${c.trainType}</span>` : ''}
+                        <span>${c.sampleSize} viajes</span>
+                        ${delayText ? `<span>· retraso ${delayText}</span>` : ''}
+                        ${todayPct !== null ? `<span>· hoy <span class="today-badge" style="background:${probColor(todayPct)};font-size:0.72rem">${todayPct}%</span></span>` : ''}
+                    </span>
+                </span>
             </div>`;
         }).join('');
     }
