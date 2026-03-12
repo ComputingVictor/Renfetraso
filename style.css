@@ -1898,11 +1898,21 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
     color: var(--text-primary);
 }
 .hist-today-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    display: flex;
     gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+    cursor: grab;
 }
+.hist-today-grid:active { cursor: grabbing; }
+.hist-today-grid::-webkit-scrollbar { height: 4px; }
+.hist-today-grid::-webkit-scrollbar-track { background: transparent; }
+.hist-today-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 .hist-today-card {
+    flex: 0 0 240px;
+    scroll-snap-align: start;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -2120,14 +2130,13 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
 
 /* ── Móvil grande (≤768px) ── */
 @media (max-width: 768px) {
-    .hist-today-grid { grid-template-columns: 1fr 1fr; }
+
     .hist-table-header { gap: 0.6rem; }
     .hist-search { width: 100%; }
 }
 
 /* ── Móvil pequeño (≤600px): filas como tarjetas ── */
 @media (max-width: 600px) {
-    .hist-today-grid { grid-template-columns: 1fr; }
 
     /* Ocultar cabecera de tabla */
     .hist-row-header { display: none; }

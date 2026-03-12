@@ -1895,16 +1895,14 @@ function renderHistoricalToday(corridors) {
         return 'En este corredor el horario es solo una propuesta creativa.';
     }
 
-    // Top 6 con mayor prob de retraso hoy (mínimo 2 muestras)
+    // Todos los corredores con datos para hoy (mínimo 2 muestras)
     const withToday = corridors
         .filter(c => c.byDayOfWeek[dow].total >= 2)
         .map(c => {
             const d    = c.byDayOfWeek[dow];
             const prob = d.total > 0 ? Math.round(d.delayed / d.total * 100) : 0;
             return { ...c, todayProb: prob, todayTotal: d.total };
-        })
-        .sort((a, b) => b.todayProb - a.todayProb)
-        .slice(0, 6);
+        });
 
     if (withToday.length === 0) {
         document.getElementById('histToday').innerHTML = '';
@@ -1937,7 +1935,21 @@ function renderHistoricalToday(corridors) {
             <span class="material-symbols-outlined">today</span>
             ¿Qué esperar hoy? (${dayName})
         </h3>
-        <div class="hist-today-grid">${cards}</div>`;
+        <div class="hist-today-grid" id="histTodayGrid">${cards}</div>`;
+
+    // Drag-to-scroll (ratón/trackpad)
+    const grid = document.getElementById('histTodayGrid');
+    let isDown = false, startX, scrollLeft;
+    grid.addEventListener('mousedown', e => {
+        isDown = true; startX = e.pageX - grid.offsetLeft; scrollLeft = grid.scrollLeft;
+    });
+    grid.addEventListener('mouseleave', () => { isDown = false; });
+    grid.addEventListener('mouseup',    () => { isDown = false; });
+    grid.addEventListener('mousemove',  e => {
+        if (!isDown) return;
+        e.preventDefault();
+        grid.scrollLeft = scrollLeft - (e.pageX - grid.offsetLeft - startX);
+    });
 }
 
 function renderHistoricalTable(corridors) {
