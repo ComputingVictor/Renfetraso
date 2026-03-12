@@ -1925,6 +1925,13 @@ function renderHistoricalToday(corridors) {
         <div class="hist-today-grid">${cards}</div>`;
 }
 
+function fmtDuration(min) {
+    if (!min || min <= 0) return null;
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    return h > 0 ? `${h}h ${m > 0 ? m + 'min' : ''}`.trim() : `${m}min`;
+}
+
 function renderHistoricalTable(corridors) {
     const dow = new Date().getDay();
 
@@ -1934,6 +1941,7 @@ function renderHistoricalTable(corridors) {
             <span>Tipo</span>
             <span style="text-align:center">Viajes</span>
             <span>Prob. retraso</span>
+            <span style="text-align:right">T. viaje est.</span>
             <span style="text-align:right">Retraso medio</span>
             <span style="text-align:right">Hoy (${DAYS_ES[dow]})</span>
         </div>`;
@@ -1948,7 +1956,8 @@ function renderHistoricalTable(corridors) {
                 ? `<span class="today-badge" style="background:${probColor(todayPct)}">${todayPct}%</span>`
                 : `<span class="today-badge no-data">—</span>`;
 
-            const delayText = c.avgDelayWhenDelayed > 0 ? `~${c.avgDelayWhenDelayed} min` : '';
+            const delayText    = c.avgDelayWhenDelayed > 0 ? `~${c.avgDelayWhenDelayed} min` : '';
+            const durationText = fmtDuration(c.avgCleanDuration);
             return `
             <div class="hist-row">
                 <span class="corridor-name" title="${c.corridor}">${c.corridor}</span>
@@ -1957,6 +1966,7 @@ function renderHistoricalTable(corridors) {
                 <span class="prob-cell">
                     <span class="prob-badge" style="background:${color}">${c.probability}%</span>
                 </span>
+                <span class="delay-avg" title="Tiempo estimado de viaje sin retraso">${durationText ? `~${durationText}` : '—'}</span>
                 <span class="delay-avg">${delayText || '—'}</span>
                 <span class="today-cell">${todayBadge}</span>
                 <span class="hist-row-mobile">
@@ -1964,6 +1974,7 @@ function renderHistoricalTable(corridors) {
                     <span class="hist-row-mobile-detail">
                         ${c.trainType ? `<span class="corridor-type-tag">${c.trainType}</span>` : ''}
                         <span>${c.sampleSize} viajes</span>
+                        ${durationText ? `<span>· ~${durationText}</span>` : ''}
                         ${delayText ? `<span>· retraso ${delayText}</span>` : ''}
                         ${todayPct !== null ? `<span>· hoy <span class="today-badge" style="background:${probColor(todayPct)};font-size:0.72rem">${todayPct}%</span></span>` : ''}
                     </span>

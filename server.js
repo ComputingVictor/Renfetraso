@@ -371,6 +371,9 @@ app.get('/api/stats/corridors', cacheFor(300), async (req, res) => {
                 COUNT(*) FILTER (WHERE was_delayed)::int                               AS delayed_count,
                 ROUND(AVG(max_delay) FILTER (WHERE was_delayed)::numeric, 1)           AS avg_delay_when_delayed,
                 ROUND(AVG(max_delay)::numeric, 1)                                      AS overall_avg_delay,
+                ROUND(AVG(
+                    GREATEST(0, (last_seen - first_seen) / 60000.0 - final_delay)
+                )::numeric, 0)                                                          AS avg_clean_duration_min,
                 COUNT(*) FILTER (WHERE day_of_week = 0)::int                           AS d0t,
                 COUNT(*) FILTER (WHERE day_of_week = 0 AND was_delayed)::int           AS d0d,
                 COUNT(*) FILTER (WHERE day_of_week = 1)::int                           AS d1t,
@@ -398,8 +401,9 @@ app.get('/api/stats/corridors', cacheFor(300), async (req, res) => {
             sampleSize:          row.sample_size,
             delayedCount:        row.delayed_count,
             probability:         row.sample_size > 0 ? Math.round(row.delayed_count / row.sample_size * 100) : 0,
-            avgDelayWhenDelayed: parseFloat(row.avg_delay_when_delayed) || 0,
-            overallAvgDelay:     parseFloat(row.overall_avg_delay)      || 0,
+            avgDelayWhenDelayed:  parseFloat(row.avg_delay_when_delayed)   || 0,
+            overallAvgDelay:      parseFloat(row.overall_avg_delay)       || 0,
+            avgCleanDuration:     parseFloat(row.avg_clean_duration_min)  || null,
             byDayOfWeek:         [0,1,2,3,4,5,6].map(d => ({
                 total:   row[`d${d}t`] || 0,
                 delayed: row[`d${d}d`] || 0
