@@ -1999,7 +1999,7 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
 .hist-row-header,
 .hist-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 80px 100px 100px 110px 110px;
+    grid-template-columns: 2fr 1fr 80px 100px 110px 110px;
     align-items: center;
     gap: 0.5rem;
     padding: 0.7rem 1.25rem;
