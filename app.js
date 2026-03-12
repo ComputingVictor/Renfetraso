@@ -1884,11 +1884,27 @@ function renderHistoricalToday(corridors) {
     const dow     = new Date().getDay();
     const dayName = DAYS_ES[dow];
 
-    // Top 8 corredores con más muestras para hoy
+    function todayFunnyPhrase(prob) {
+        if (prob <= 10)  return 'Rarísimo en Renfe, pero hoy parece que llega a tiempo.';
+        if (prob <= 20)  return 'Las estadísticas te sonríen. Por ahora.';
+        if (prob <= 35)  return 'Más probabilidades de llegar que de no llegar. Tampoco es para tirar cohetes.';
+        if (prob <= 50)  return 'Cara o cruz. Al menos el viaje tiene algo de emoción.';
+        if (prob <= 65)  return 'Avisa a quien te espere. O no, que ya lo deberían saber.';
+        if (prob <= 80)  return 'Haz las paces con la sala de espera, va a ser tu hogar un rato.';
+        if (prob <= 90)  return 'El retraso no es una posibilidad, es una tradición.';
+        return 'En este corredor el horario es solo una propuesta creativa.';
+    }
+
+    // Top 6 con mayor prob de retraso hoy (mínimo 2 muestras)
     const withToday = corridors
         .filter(c => c.byDayOfWeek[dow].total >= 2)
-        .sort((a, b) => b.byDayOfWeek[dow].total - a.byDayOfWeek[dow].total)
-        .slice(0, 8);
+        .map(c => {
+            const d    = c.byDayOfWeek[dow];
+            const prob = d.total > 0 ? Math.round(d.delayed / d.total * 100) : 0;
+            return { ...c, todayProb: prob, todayTotal: d.total };
+        })
+        .sort((a, b) => b.todayProb - a.todayProb)
+        .slice(0, 6);
 
     if (withToday.length === 0) {
         document.getElementById('histToday').innerHTML = '';
@@ -1896,9 +1912,7 @@ function renderHistoricalToday(corridors) {
     }
 
     const cards = withToday.map(c => {
-        const day      = c.byDayOfWeek[dow];
-        const prob     = Math.round(day.delayed / day.total * 100);
-        const color    = probColor(prob);
+        const color    = probColor(c.todayProb);
         const avgDelay = c.avgDelayWhenDelayed;
 
         return `
@@ -1906,14 +1920,15 @@ function renderHistoricalToday(corridors) {
             <div class="corridor-name" title="${c.corridor}">${c.corridor}</div>
             <div class="corridor-type">${c.trainType || ''}</div>
             <div class="today-prob-row">
-                <span class="today-prob-label" style="color:${color}">${prob}%</span>
+                <span class="today-prob-label" style="color:${color}">${c.todayProb}%</span>
                 <div class="today-prob-bar-wrap">
-                    <div class="today-prob-bar" style="width:${prob}%;background:${color}"></div>
+                    <div class="today-prob-bar" style="width:${c.todayProb}%;background:${color}"></div>
                 </div>
             </div>
             <div class="today-delay-hint">
-                ${prob > 0 && avgDelay > 0 ? `Retraso esperado ~${avgDelay} min · ` : ''}${day.total} registros los ${dayName}
+                ${avgDelay > 0 ? `~${avgDelay} min si se retrasa · ` : ''}${c.todayTotal} registros los ${dayName}
             </div>
+            <div class="today-funny">${todayFunnyPhrase(c.todayProb)}</div>
         </div>`;
     }).join('');
 

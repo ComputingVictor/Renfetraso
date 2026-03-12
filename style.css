@@ -1949,6 +1949,15 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
     font-size: 0.78rem;
     color: var(--text-secondary);
 }
+.hist-today-card .today-funny {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 0.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.35rem;
+    line-height: 1.35;
+}
 .hist-today-card .no-data-today {
     font-size: 0.8rem;
     color: var(--text-secondary);
