@@ -1928,15 +1928,46 @@ function renderHistoricalToday(corridors) {
 function renderHistoricalTable(corridors) {
     const dow = new Date().getDay();
 
-    const header = `
-        <div class="hist-row-header">
-            <span>Corredor</span>
-            <span>Tipo</span>
-            <span style="text-align:center">Viajes</span>
-            <span>Prob. retraso</span>
-            <span style="text-align:right">Retraso medio</span>
-            <span style="text-align:right">Hoy (${DAYS_ES[dow]})</span>
-        </div>`;
+    // Estado de ordenación
+    let sortKey = 'probability';
+    let sortAsc = false;
+
+    const COLS = [
+        { key: 'corridor',            label: 'Corredor',                    align: 'left'   },
+        { key: 'trainType',           label: 'Tipo',                        align: 'left'   },
+        { key: 'sampleSize',          label: 'Viajes',                      align: 'center' },
+        { key: 'probability',         label: 'Prob. retraso',               align: 'left'   },
+        { key: 'avgDelayWhenDelayed', label: 'Retraso medio',               align: 'right'  },
+        { key: 'todayPct',            label: `Hoy (${DAYS_ES[dow]})`,       align: 'right'  },
+    ];
+
+    function todayPctOf(c) {
+        const day = c.byDayOfWeek[dow];
+        return day.total >= 2 ? Math.round(day.delayed / day.total * 100) : -1;
+    }
+
+    function sortedList(base) {
+        return [...base].sort((a, b) => {
+            let va = sortKey === 'todayPct' ? todayPctOf(a) : (a[sortKey] ?? '');
+            let vb = sortKey === 'todayPct' ? todayPctOf(b) : (b[sortKey] ?? '');
+            if (typeof va === 'string') va = va.toLowerCase();
+            if (typeof vb === 'string') vb = vb.toLowerCase();
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    function buildHeader() {
+        const cols = COLS.map(col => {
+            const active  = col.key === sortKey;
+            const arrow   = active ? (sortAsc ? ' ▲' : ' ▼') : '';
+            const style   = col.align !== 'left' ? ` style="text-align:${col.align}"` : '';
+            const classes = `hist-sort-col${active ? ' hist-sort-active' : ''}`;
+            return `<span class="${classes}" data-sort="${col.key}"${style}>${col.label}${arrow}</span>`;
+        }).join('');
+        return `<div class="hist-row-header">${cols}</div>`;
+    }
 
     function buildRows(list) {
         if (list.length === 0) return '<div class="no-data" style="padding:2rem">Sin resultados</div>';
@@ -1947,7 +1978,6 @@ function renderHistoricalTable(corridors) {
             const todayBadge = todayPct !== null
                 ? `<span class="today-badge" style="background:${probColor(todayPct)}">${todayPct}%</span>`
                 : `<span class="today-badge no-data">—</span>`;
-
             const delayText = c.avgDelayWhenDelayed > 0 ? `~${c.avgDelayWhenDelayed} min` : '';
             return `
             <div class="hist-row">
@@ -1972,16 +2002,26 @@ function renderHistoricalTable(corridors) {
         }).join('');
     }
 
+    function redraw(base) {
+        body.innerHTML = buildHeader() + buildRows(sortedList(base));
+        body.querySelectorAll('.hist-sort-col').forEach(el => {
+            el.addEventListener('click', () => {
+                const key = el.dataset.sort;
+                if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = false; }
+                redraw(currentList);
+            });
+        });
+    }
+
     const body = document.getElementById('histTableBody');
-    body.innerHTML = header + buildRows(corridors);
+    let currentList = corridors;
+    redraw(currentList);
 
     // Búsqueda en tiempo real
     document.getElementById('histSearch').addEventListener('input', (e) => {
         const q = e.target.value.trim().toLowerCase();
-        const filtered = q
-            ? corridors.filter(c => c.corridor.toLowerCase().includes(q))
-            : corridors;
-        body.innerHTML = header + buildRows(filtered);
+        currentList = q ? corridors.filter(c => c.corridor.toLowerCase().includes(q)) : corridors;
+        redraw(currentList);
     });
 }
 

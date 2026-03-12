@@ -2004,6 +2004,15 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
     gap: 0.5rem;
     padding: 0.7rem 1.25rem;
 }
+.hist-sort-col {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+    white-space: nowrap;
+}
+.hist-sort-col:hover { color: var(--text-primary); }
+.hist-sort-active    { color: var(--accent) !important; }
+
 .hist-row-header {
     font-size: 0.75rem;
     font-weight: 600;
