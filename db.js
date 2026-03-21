@@ -106,6 +106,20 @@ async function getHistoricalSummary() {
     }
 }
 
+async function getDailyStats(date) {
+    if (!backendOnline) return null;
+    try {
+        const res = await fetch(`${API_BASE}/api/stats/daily/${date}`, {
+            signal: AbortSignal.timeout(5000)
+        });
+        if (res.ok) return await res.json();
+        throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+        console.warn('getDailyStats error:', err.message);
+        return null;
+    }
+}
+
 // Estas funciones ya no hacen nada — el servidor recoge los datos por su cuenta.
 // Se mantienen para no romper las llamadas en app.js.
 function updateTripCache() {}

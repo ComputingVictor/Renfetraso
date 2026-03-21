@@ -104,8 +104,8 @@
                 </li>
                 <li>
                     <a href="#historical" class="nav-link" data-section="historical">
-                        <span class="material-symbols-outlined" aria-hidden="true">history</span>
-                        <span>Histórico</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">query_stats</span>
+                        <span>Probabilidad de Retrasos</span>
                     </a>
                 </li>
             </ul>
@@ -121,8 +121,31 @@
             <section id="dashboard" class="section active">
 
                 <div class="section-header">
-                    <h2>Panel de Puntualidad en Vivo</h2>
-                    <p class="section-subtitle">Datos actualizados cada 15&nbsp;s&nbsp;·&nbsp;Red de larga distancia Renfe</p>
+                    <div class="header-left">
+                        <h2>Panel de Puntualidad <span id="dashboardModeLabel">en Vivo</span></h2>
+                        <p class="section-subtitle" id="dashboardSubtitle">Datos actualizados cada 15&nbsp;s&nbsp;·&nbsp;Red de larga distancia Renfe</p>
+                    </div>
+                    <div class="header-right">
+                        <!-- Selector de fecha discreto -->
+                        <div class="compact-date-selector">
+                            <button id="toggleHistoricalBtn" class="compact-date-toggle" title="Ver datos históricos">
+                                <span class="material-symbols-outlined">calendar_today</span>
+                            </button>
+                            <div id="compactDatePicker" class="compact-date-picker" style="display: none;">
+                                <input type="date" id="dashboardDatePicker" class="compact-date-input">
+                                <button id="dashboardViewDayBtn" class="compact-date-btn" title="Cargar">
+                                    <span class="material-symbols-outlined">check</span>
+                                </button>
+                                <button id="dashboardCancelBtn" class="compact-date-btn" title="Cancelar">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <button id="dashboardViewLiveBtn" class="compact-live-btn" style="display: none;" title="Volver a datos en vivo">
+                                <span class="material-symbols-outlined">sensors</span>
+                                <span class="live-label">En vivo</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Buscador -->
@@ -241,8 +264,31 @@
             <section id="timeseries" class="section">
 
                 <div class="section-header">
-                    <h2>Series Temporales de Retrasos</h2>
-                    <p class="section-subtitle">Evolución histórica del retraso medio por tipo de tren durante la sesión</p>
+                    <div class="header-left">
+                        <h2>Series Temporales de Retrasos <span id="timeseriesModeLabel">en Vivo</span></h2>
+                        <p class="section-subtitle" id="timeseriesSubtitle">Evolución histórica del retraso medio por tipo de tren durante la sesión</p>
+                    </div>
+                    <div class="header-right">
+                        <!-- Selector de fecha discreto -->
+                        <div class="compact-date-selector">
+                            <button id="toggleTimeseriesHistoricalBtn" class="compact-date-toggle" title="Ver datos históricos">
+                                <span class="material-symbols-outlined">calendar_today</span>
+                            </button>
+                            <div id="compactTimeseriesDatePicker" class="compact-date-picker" style="display: none;">
+                                <input type="date" id="timeseriesDatePicker" class="compact-date-input">
+                                <button id="timeseriesViewDayBtn" class="compact-date-btn" title="Cargar">
+                                    <span class="material-symbols-outlined">check</span>
+                                </button>
+                                <button id="timeseriesCancelBtn" class="compact-date-btn" title="Cancelar">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <button id="timeseriesViewLiveBtn" class="compact-live-btn" style="display: none;" title="Volver a datos en vivo">
+                                <span class="material-symbols-outlined">sensors</span>
+                                <span class="live-label">En vivo</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="controls">
@@ -400,12 +446,12 @@
 
             </section>
 
-            <!-- ── § 6: HISTÓRICO ── -->
+            <!-- ── § 6: PROBABILIDAD DE RETRASOS ── -->
             <section id="historical" class="section">
 
                 <div class="section-header">
-                    <h2>Histórico de Puntualidad</h2>
-                    <p class="section-subtitle" id="histSubtitle">Cargando datos históricos…</p>
+                    <h2>Probabilidad de Retrasos</h2>
+                    <p class="section-subtitle" id="histSubtitle">Cargando estadísticas históricas…</p>
                 </div>
 
                 <!-- KPIs -->

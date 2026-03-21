@@ -298,6 +298,12 @@ body::before {
     background: var(--text-secondary);
 }
 
+.status-dot.historical {
+    background: #f39c12;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 6px #f39c12;
+}
+
 @keyframes pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.4); opacity: 0.6; }
@@ -2172,5 +2178,302 @@ button .material-symbols-outlined { font-size: 0.9rem; vertical-align: middle; }
         font-size: 0.78rem;
         color: var(--text-secondary);
         flex-wrap: wrap;
+    }
+}
+
+/* ============================================================================
+   DASHBOARD - Selector de fecha compacto en header
+   ============================================================================ */
+
+#dashboard .section-header,
+#timeseries .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.compact-date-selector {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.compact-date-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.compact-date-toggle:hover {
+    background: var(--bg-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.compact-date-toggle .material-symbols-outlined {
+    font-size: 1.25rem;
+}
+
+.compact-date-picker {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.compact-date-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.compact-date-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 142, 247, 0.1);
+}
+
+.compact-date-input:hover {
+    border-color: var(--primary-color);
+}
+
+.compact-date-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+.compact-date-btn:hover {
+    background: #3a7be0;
+    transform: translateY(-1px);
+}
+
+.compact-date-btn:active {
+    transform: translateY(0);
+}
+
+.compact-date-btn .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+
+.compact-date-btn:last-child {
+    background: var(--danger-color);
+}
+
+.compact-date-btn:last-child:hover {
+    background: #c62828;
+}
+
+.compact-live-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--success-color);
+    border: 1px solid var(--success-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.compact-live-btn:hover {
+    background: #388e3c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.compact-live-btn:active {
+    transform: translateY(0);
+}
+
+.compact-live-btn .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+
+.live-label {
+    font-family: 'Inter', sans-serif;
+}
+
+/* ============================================================================
+   HISTÓRICO - Selector de fecha integrado
+   ============================================================================ */
+
+.daily-date-selector {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.date-selector-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.date-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.date-input-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.date-input-group label .material-symbols-outlined {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.daily-date-input {
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 160px;
+}
+
+.daily-date-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.1);
+}
+
+.daily-date-input:hover {
+    border-color: var(--primary-color);
+}
+
+.daily-date-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.625rem 1rem;
+    background: linear-gradient(135deg, var(--primary-color), #3a7be0);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.daily-date-info .material-symbols-outlined {
+    font-size: 1.2rem;
+}
+
+/* Animación de carga (spinning) */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.material-symbols-outlined.spinning {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #dashboard .section-header,
+    #timeseries .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .header-right {
+        justify-content: flex-end;
+    }
+
+    .compact-date-picker {
+        right: auto;
+        left: 0;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        min-width: 250px;
+    }
+
+    .compact-date-input {
+        width: 100%;
+    }
+
+    .date-selector-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .date-input-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .date-input-group label {
+        width: 100%;
+    }
+
+    .daily-date-input {
+        width: 100%;
+    }
+
+    .daily-date-selector {
+        padding: 1rem;
     }
 }

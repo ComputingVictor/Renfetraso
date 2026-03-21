@@ -488,6 +488,157 @@ app.get('/api/stats/corridors', cacheFor(300), async (req, res) => {
     }
 });
 
+/**
+ * GET /api/stats/daily/:date
+ * Estadísticas agregadas para un día específico (YYYY-MM-DD)
+ */
+app.get('/api/stats/daily/:date', cacheFor(300), async (req, res) => {
+    try {
+        const dateParam = req.params.date;
+
+        // Validar formato de fecha
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+            return res.status(400).json({ error: 'Formato de fecha inválido' });
+        }
+
+        // Consulta principal: todos los registros de ese día
+        const mainQuery = `
+            SELECT
+                train_id,
+                train_type,
+                corridor,
+                max_delay,
+                final_delay,
+                was_delayed
+            FROM trip_records
+            WHERE date = $1
+        `;
+
+        const result = await pool.query(mainQuery, [dateParam]);
+        const records = result.rows;
+
+        if (records.length === 0) {
+            return res.json({
+                date: dateParam,
+                available: false,
+                message: 'No hay datos para esta fecha'
+            });
+        }
+
+        // Calcular estadísticas agregadas
+        const totalRecords = records.length;
+        const delayed = records.filter(r => r.was_delayed);
+        const totalDelayed = delayed.length;
+        const probability = Math.round((totalDelayed / totalRecords) * 100);
+
+        const allDelays = records.map(r => r.max_delay);
+        const maxDelay = Math.max(...allDelays);
+        const overallAvg = (allDelays.reduce((a, b) => a + b, 0) / totalRecords).toFixed(1);
+
+        const delayedDelays = delayed.map(r => r.max_delay);
+        const avgDelayWhenDelayed = delayed.length > 0
+            ? (delayedDelays.reduce((a, b) => a + b, 0) / delayed.length).toFixed(1)
+            : 0;
+
+        // Agrupar por tipo de tren
+        const byTrainType = {};
+        records.forEach(r => {
+            const type = r.train_type || 'Desconocido';
+            if (!byTrainType[type]) {
+                byTrainType[type] = { total: 0, delayed: 0, delays: [] };
+            }
+            byTrainType[type].total++;
+            if (r.was_delayed) byTrainType[type].delayed++;
+            byTrainType[type].delays.push(r.max_delay);
+        });
+
+        const trainTypeStats = {};
+        Object.keys(byTrainType).forEach(type => {
+            const data = byTrainType[type];
+            trainTypeStats[type] = {
+                total: data.total,
+                delayed: data.delayed,
+                probability: Math.round((data.delayed / data.total) * 100),
+                avgDelay: (data.delays.reduce((a, b) => a + b, 0) / data.total).toFixed(1)
+            };
+        });
+
+        // Top 5 trenes más retrasados
+        const topDelayed = records
+            .sort((a, b) => b.max_delay - a.max_delay)
+            .slice(0, 5)
+            .map(r => ({
+                trainId: r.train_id,
+                trainType: r.train_type,
+                corridor: r.corridor,
+                maxDelay: r.max_delay
+            }));
+
+        // Distribución de retrasos
+        const distribution = {
+            '0 min': 0,
+            '1-5': 0,
+            '6-15': 0,
+            '16-30': 0,
+            '31-60': 0,
+            '60+': 0
+        };
+
+        allDelays.forEach(d => {
+            if (d === 0) distribution['0 min']++;
+            else if (d <= 5) distribution['1-5']++;
+            else if (d <= 15) distribution['6-15']++;
+            else if (d <= 30) distribution['16-30']++;
+            else if (d <= 60) distribution['31-60']++;
+            else distribution['60+']++;
+        });
+
+        // Top corredores con más retrasos
+        const byCorridor = {};
+        records.forEach(r => {
+            const corridor = r.corridor || 'Desconocido';
+            if (!byCorridor[corridor]) {
+                byCorridor[corridor] = { total: 0, delayed: 0, delays: [] };
+            }
+            byCorridor[corridor].total++;
+            if (r.was_delayed) byCorridor[corridor].delayed++;
+            byCorridor[corridor].delays.push(r.max_delay);
+        });
+
+        const topCorridors = Object.entries(byCorridor)
+            .map(([corridor, data]) => ({
+                corridor,
+                total: data.total,
+                delayed: data.delayed,
+                probability: Math.round((data.delayed / data.total) * 100),
+                avgDelay: (data.delays.reduce((a, b) => a + b, 0) / data.total).toFixed(1)
+            }))
+            .sort((a, b) => parseFloat(b.avgDelay) - parseFloat(a.avgDelay))
+            .slice(0, 10);
+
+        // Respuesta
+        res.json({
+            date: dateParam,
+            available: true,
+            dayOfWeek: new Date(dateParam).getDay(),
+            totalRecords,
+            totalDelayed,
+            probability,
+            maxDelay,
+            overallAvgDelay: parseFloat(overallAvg),
+            avgDelayWhenDelayed: parseFloat(avgDelayWhenDelayed),
+            byTrainType: trainTypeStats,
+            distribution,
+            topDelayedTrains: topDelayed,
+            topDelayedCorridors: topCorridors
+        });
+
+    } catch (err) {
+        console.error('Error en /api/stats/daily:', err);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
 // ── Mantenimiento ────────────────────────────────────────────────────────────
 
 /** Borra registros con más de 365 días (1 año de historial) */

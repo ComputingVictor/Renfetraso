@@ -85,7 +85,12 @@ const state = {
     map: null,
     charts: {},
     previousDelays: {}, // For notification tracking
-    initialLoadComplete: false
+    initialLoadComplete: false,
+    dashboardMode: 'live', // 'live' or 'historical'
+    currentHistoricalDate: null,
+    liveDataCache: null, // Cache para restaurar datos en vivo
+    timeseriesMode: 'live', // 'live' or 'historical'
+    currentTimeseriesDate: null
 };
 
 // ============================================================================
@@ -146,6 +151,12 @@ async function fetchDataWithFallback(url) {
 }
 
 async function updateData() {
+    // Si estamos en modo histórico, no actualizar datos en vivo
+    if (state.dashboardMode === 'historical') {
+        console.log('🕒 Modo histórico activo, omitiendo actualización en vivo');
+        return;
+    }
+
     try {
         console.log('Iniciando actualización de datos...');
         const [fleetData, routesData] = await Promise.all([
@@ -171,7 +182,7 @@ async function updateData() {
         updateStatusIndicator(true);
         updateLastUpdateTime();
         processTimeSeriesData();
-updateAllSections();
+        updateAllSections();
         checkWatchedTrains();
 
         // Hide loading overlay on first successful load
@@ -1850,6 +1861,9 @@ async function loadHistorical() {
     renderHistoricalKpis(summary);
     renderHistoricalToday(corridors);
     renderHistoricalTable(corridors);
+
+    // Configurar selector de fecha
+    setupDailyDateSelector(summary);
 }
 
 function renderHistoricalNoBackend() {
@@ -2054,6 +2068,626 @@ function renderHistoricalTable(corridors) {
 }
 
 // ============================================================================
+// HISTÓRICO POR DÍA - Selector de fecha integrado
+// ============================================================================
+
+let currentHistoricalView = 'all'; // 'all' o 'daily'
+let currentSelectedDate = null;
+let allHistoricalData = null; // Cache de datos generales
+
+function setupDailyDateSelector(summary) {
+    const dateInput = document.getElementById('dailyDatePicker');
+    const viewBtn = document.getElementById('dailyViewBtn');
+    const viewAllBtn = document.getElementById('viewAllBtn');
+
+    // Configurar límites de fecha
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.max = today;
+
+    if (summary.oldest_date) {
+        dateInput.min = summary.oldest_date;
+    }
+
+    dateInput.value = today;
+
+    // Event listeners
+    viewBtn.addEventListener('click', async () => {
+        const selectedDate = dateInput.value;
+        if (selectedDate) {
+            await loadDailyHistoricalView(selectedDate);
+        }
+    });
+
+    viewAllBtn.addEventListener('click', () => {
+        restoreAllHistoricalView();
+    });
+
+    // Enter key en input
+    dateInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') viewBtn.click();
+    });
+}
+
+async function loadDailyHistoricalView(date) {
+    // Guardar estado actual si es la primera vez
+    if (currentHistoricalView === 'all') {
+        allHistoricalData = {
+            kpis: {
+                totalRecords: document.getElementById('histTotalRecords').textContent,
+                totalCorridors: document.getElementById('histTotalCorridors').textContent,
+                delayRate: document.getElementById('histDelayRate').textContent,
+                avgDelay: document.getElementById('histAvgDelay').textContent
+            },
+            subtitle: document.getElementById('histSubtitle').textContent
+        };
+    }
+
+    // Mostrar loading
+    showHistoricalLoading(date);
+
+    // Obtener datos del día
+    const data = await getDailyStats(date);
+
+    if (!data) {
+        showHistoricalError('No se pudieron cargar los datos. Intenta de nuevo.');
+        return;
+    }
+
+    if (!data.available) {
+        showHistoricalError('No hay datos disponibles para esta fecha.');
+        return;
+    }
+
+    // Actualizar UI
+    currentHistoricalView = 'daily';
+    currentSelectedDate = date;
+
+    // Mostrar botón "Ver Todo"
+    document.getElementById('viewAllBtn').style.display = 'inline-flex';
+
+    // Actualizar subtítulo con fecha
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    document.getElementById('histSubtitle').textContent =
+        `${dayNames[dateObj.getDay()]}, ${dateObj.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })} · ${data.totalRecords} trenes registrados`;
+
+    // Mostrar info de fecha
+    const dateInfo = document.getElementById('dailyDateInfo');
+    dateInfo.style.display = 'flex';
+    dateInfo.innerHTML = `
+        <span class="material-symbols-outlined">event_available</span>
+        Mostrando datos del día seleccionado
+    `;
+
+    // Actualizar KPIs
+    updateHistoricalKPIsWithDailyData(data);
+
+    // Ocultar sección "¿Qué esperar hoy?"
+    document.getElementById('histToday').style.display = 'none';
+
+    // Actualizar tabla de corredores con datos del día
+    updateHistoricalTableWithDailyData(data);
+}
+
+function updateHistoricalKPIsWithDailyData(data) {
+    document.getElementById('histTotalRecords').textContent = data.totalRecords.toLocaleString('es-ES');
+    document.getElementById('histTotalCorridors').textContent = data.topDelayedCorridors.length;
+    document.getElementById('histDelayRate').textContent = `${data.probability}%`;
+    document.getElementById('histAvgDelay').textContent =
+        data.avgDelayWhenDelayed > 0 ? `${data.avgDelayWhenDelayed} min` : '—';
+}
+
+function updateHistoricalTableWithDailyData(data) {
+    const body = document.getElementById('histTableBody');
+    const dow = new Date(data.date).getDay();
+
+    // Convertir datos del día a formato de tabla
+    const corridorsList = data.topDelayedCorridors.map(c => ({
+        corridor: c.corridor,
+        trainType: '', // No tenemos info de tipo específico por corredor en este endpoint
+        sampleSize: c.total,
+        delayedCount: c.delayed,
+        probability: c.probability,
+        avgDelayWhenDelayed: parseFloat(c.avgDelay),
+        overallAvgDelay: parseFloat(c.avgDelay),
+        byDayOfWeek: [] // No aplicable para vista diaria
+    }));
+
+    // Reutilizar función de renderizado pero sin capacidad de ordenar
+    const html = corridorsList.map(c => {
+        const color = probColor(c.probability);
+        const delayText = c.avgDelayWhenDelayed > 0 ? `~${c.avgDelayWhenDelayed} min` : '';
+        return `
+            <div class="hist-row">
+                <span class="corridor-name" title="${c.corridor}">${c.corridor}</span>
+                <span class="corridor-type-tag">—</span>
+                <span class="sample-size">${c.sampleSize}</span>
+                <span class="prob-cell">
+                    <span class="prob-badge" style="background:${color}">${c.probability}%</span>
+                </span>
+                <span class="delay-avg">${delayText || '—'}</span>
+                <span class="today-cell"><span class="today-badge no-data">—</span></span>
+                <span class="hist-row-mobile">
+                    <span class="prob-badge" style="background:${color}">${c.probability}%</span>
+                    <span class="hist-row-mobile-detail">
+                        <span>${c.sampleSize} viajes</span>
+                        ${delayText ? `<span>· retraso ${delayText}</span>` : ''}
+                    </span>
+                </span>
+            </div>`;
+    }).join('');
+
+    body.innerHTML = `
+        <div class="hist-row-header">
+            <span style="text-align:left">Corredor</span>
+            <span style="text-align:left">Tipo</span>
+            <span style="text-align:center">Viajes</span>
+            <span style="text-align:left">Prob. retraso</span>
+            <span style="text-align:right">Retraso medio</span>
+            <span style="text-align:right">Hoy (${DAYS_ES[dow]})</span>
+        </div>
+        ${html}
+    `;
+}
+
+function restoreAllHistoricalView() {
+    currentHistoricalView = 'all';
+    currentSelectedDate = null;
+
+    // Ocultar botón "Ver Todo"
+    document.getElementById('viewAllBtn').style.display = 'none';
+
+    // Ocultar info de fecha
+    document.getElementById('dailyDateInfo').style.display = 'none';
+
+    // Restaurar subtítulo
+    if (allHistoricalData) {
+        document.getElementById('histSubtitle').textContent = allHistoricalData.subtitle;
+
+        // Restaurar KPIs
+        document.getElementById('histTotalRecords').textContent = allHistoricalData.kpis.totalRecords;
+        document.getElementById('histTotalCorridors').textContent = allHistoricalData.kpis.totalCorridors;
+        document.getElementById('histDelayRate').textContent = allHistoricalData.kpis.delayRate;
+        document.getElementById('histAvgDelay').textContent = allHistoricalData.kpis.avgDelay;
+    }
+
+    // Mostrar sección "¿Qué esperar hoy?"
+    document.getElementById('histToday').style.display = 'block';
+
+    // Recargar tabla completa
+    loadHistorical();
+}
+
+function showHistoricalLoading(date) {
+    const body = document.getElementById('histTableBody');
+    const dateObj = new Date(date + 'T00:00:00');
+
+    body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;padding:3rem;color:var(--text-secondary)">
+            <span class="material-symbols-outlined spinning" style="font-size:3rem;margin-bottom:1rem">refresh</span>
+            <p>Cargando datos del ${dateObj.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            })}...</p>
+        </div>
+    `;
+}
+
+function showHistoricalError(message) {
+    const body = document.getElementById('histTableBody');
+    body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;padding:3rem;color:var(--danger-color)">
+            <span class="material-symbols-outlined" style="font-size:3rem;margin-bottom:1rem">error</span>
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+// ============================================================================
+// DASHBOARD: MODO VIVO VS HISTÓRICO
+// ============================================================================
+
+function setupDashboardDateSelector() {
+    const dateInput = document.getElementById('dashboardDatePicker');
+    const viewDayBtn = document.getElementById('dashboardViewDayBtn');
+    const viewLiveBtn = document.getElementById('dashboardViewLiveBtn');
+    const toggleBtn = document.getElementById('toggleHistoricalBtn');
+    const cancelBtn = document.getElementById('dashboardCancelBtn');
+    const datePicker = document.getElementById('compactDatePicker');
+
+    if (!dateInput || !viewDayBtn || !viewLiveBtn || !toggleBtn) return;
+
+    // Configurar límites de fecha
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.max = today;
+    dateInput.value = today;
+
+    // Event listeners
+    toggleBtn.addEventListener('click', () => {
+        // Mostrar/ocultar selector de fecha
+        if (datePicker.style.display === 'none' || !datePicker.style.display) {
+            datePicker.style.display = 'flex';
+            dateInput.focus();
+        } else {
+            datePicker.style.display = 'none';
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        // Ocultar selector de fecha
+        datePicker.style.display = 'none';
+    });
+
+    viewDayBtn.addEventListener('click', async () => {
+        const selectedDate = dateInput.value;
+        if (selectedDate) {
+            datePicker.style.display = 'none';
+            await switchToHistoricalMode(selectedDate);
+        }
+    });
+
+    viewLiveBtn.addEventListener('click', () => {
+        switchToLiveMode();
+    });
+
+    // Enter key en input
+    dateInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            viewDayBtn.click();
+        }
+    });
+
+    // Cerrar selector si se hace clic fuera
+    document.addEventListener('click', (e) => {
+        if (!datePicker.contains(e.target) && !toggleBtn.contains(e.target)) {
+            datePicker.style.display = 'none';
+        }
+    });
+}
+
+async function switchToHistoricalMode(date) {
+    // Mostrar indicador de carga
+    const viewDayBtn = document.getElementById('dashboardViewDayBtn');
+    const originalText = viewDayBtn.innerHTML;
+    viewDayBtn.disabled = true;
+    viewDayBtn.innerHTML = '<span class="material-symbols-outlined spinning">refresh</span> Cargando...';
+
+    // Guardar datos en vivo actuales
+    if (state.dashboardMode === 'live') {
+        state.liveDataCache = {
+            fleetData: [...state.fleetData],
+            routesData: [...state.routesData]
+        };
+    }
+
+    // Obtener datos históricos
+    console.log(`🔍 Solicitando datos históricos para: ${date}`);
+    const data = await getDailyStats(date);
+
+    // Restaurar botón
+    viewDayBtn.disabled = false;
+    viewDayBtn.innerHTML = originalText;
+
+    if (!data) {
+        console.error('❌ Error: No se recibieron datos del servidor');
+        alert('No se pudieron cargar los datos históricos.\n\nPosibles causas:\n• El servidor backend no está disponible\n• Problemas de conexión\n\nVerifica la consola del navegador para más detalles.');
+        return;
+    }
+
+    console.log('📦 Datos recibidos:', data);
+
+    if (!data.available) {
+        console.warn(`⚠️ No hay datos para la fecha: ${date}`);
+        const oldestDate = data.message || 'desconocida';
+        alert(`No hay datos históricos disponibles para esta fecha.\n\nFecha solicitada: ${date}\n\nEl sistema comenzó a recoger datos desde: ${oldestDate}`);
+        return;
+    }
+
+    // Cambiar a modo histórico
+    state.dashboardMode = 'historical';
+    state.currentHistoricalDate = date;
+
+    // Convertir datos históricos al formato esperado por el dashboard
+    const historicalFleetData = convertHistoricalToFleetFormat(data);
+    state.fleetData = historicalFleetData;
+
+    // Actualizar UI
+    updateDashboardModeUI(date);
+    updateAllSections();
+
+    console.log(`📅 Cambiado a modo histórico: ${date}`);
+}
+
+function switchToLiveMode() {
+    // Restaurar datos en vivo desde cache
+    if (state.liveDataCache) {
+        state.fleetData = state.liveDataCache.fleetData;
+        state.routesData = state.liveDataCache.routesData;
+        state.liveDataCache = null;
+    }
+
+    // Cambiar a modo vivo
+    state.dashboardMode = 'live';
+    state.currentHistoricalDate = null;
+
+    // Actualizar UI
+    updateDashboardModeUI(null);
+    updateAllSections();
+
+    // Reiniciar actualización automática
+    updateData();
+
+    console.log('🔴 Cambiado a modo en vivo');
+}
+
+function updateDashboardModeUI(date) {
+    const modeLabel = document.getElementById('dashboardModeLabel');
+    const subtitle = document.getElementById('dashboardSubtitle');
+    const toggleBtn = document.getElementById('toggleHistoricalBtn');
+    const viewLiveBtn = document.getElementById('dashboardViewLiveBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+
+    if (date) {
+        // Modo histórico
+        const dateObj = new Date(date + 'T00:00:00');
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        modeLabel.textContent = 'Histórico';
+        modeLabel.style.color = '#f39c12';
+
+        subtitle.textContent = `${dayNames[dateObj.getDay()]}, ${dateObj.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })}`;
+
+        // Ocultar toggle y mostrar botón de volver a vivo
+        if (toggleBtn) toggleBtn.style.display = 'none';
+        if (viewLiveBtn) viewLiveBtn.style.display = 'flex';
+
+        statusDot.className = 'status-dot historical';
+        statusText.textContent = 'HISTÓRICO';
+    } else {
+        // Modo en vivo
+        modeLabel.textContent = 'en Vivo';
+        modeLabel.style.color = '';
+
+        subtitle.textContent = 'Datos actualizados cada 15 s · Red de larga distancia Renfe';
+
+        // Mostrar toggle y ocultar botón de volver a vivo
+        if (toggleBtn) toggleBtn.style.display = 'flex';
+        if (viewLiveBtn) viewLiveBtn.style.display = 'none';
+
+        statusDot.className = 'status-dot live';
+        statusText.textContent = 'EN VIVO';
+    }
+}
+
+function convertHistoricalToFleetFormat(data) {
+    // Convertir datos históricos al formato que espera el dashboard
+    // Los datos históricos no tienen toda la info, así que creamos objetos sintéticos
+    const trains = [];
+
+    // Usar topDelayedTrains para tener info de trenes individuales
+    data.topDelayedTrains.forEach((train, index) => {
+        trains.push({
+            codComercial: train.trainId,
+            codProduct: getProductCodeFromType(train.trainType),
+            desCorridor: train.corridor || 'Ruta desconocida',
+            ultRetraso: train.maxDelay,
+            latitud: null, // No tenemos coordenadas en histórico
+            longitud: null,
+            time: Date.now() / 1000,
+            mat: ''
+        });
+    });
+
+    // Generar trenes sintéticos basados en la distribución para tener números correctos
+    const distribution = data.distribution;
+    let syntheticId = 10000;
+
+    Object.entries(distribution).forEach(([range, count]) => {
+        const delay = getDelayFromRange(range);
+
+        for (let i = 0; i < count && trains.length < data.totalRecords; i++) {
+            trains.push({
+                codComercial: `SYN${syntheticId++}`,
+                codProduct: 2, // AVE por defecto
+                desCorridor: 'Ruta sintética',
+                ultRetraso: delay,
+                latitud: null,
+                longitud: null,
+                time: Date.now() / 1000,
+                mat: ''
+            });
+        }
+    });
+
+    return trains;
+}
+
+function getProductCodeFromType(typeName) {
+    // Convertir nombre de tipo a código de producto
+    const typeMap = {
+        'AVE': 2,
+        'Avant': 3,
+        'Talgo': 4,
+        'Altaria': 5,
+        'Euromed': 6,
+        'Alvia': 11,
+        'AVLO': 28
+    };
+    return typeMap[typeName] || 2;
+}
+
+function getDelayFromRange(range) {
+    // Convertir rango a valor medio de retraso
+    const rangeMap = {
+        '0 min': 0,
+        '1-5': 3,
+        '6-15': 10,
+        '16-30': 23,
+        '31-60': 45,
+        '60+': 75
+    };
+    return rangeMap[range] || 0;
+}
+
+// ============================================================================
+// SERIES TEMPORALES: MODO VIVO VS HISTÓRICO
+// ============================================================================
+
+function setupTimeseriesDateSelector() {
+    const dateInput = document.getElementById('timeseriesDatePicker');
+    const viewDayBtn = document.getElementById('timeseriesViewDayBtn');
+    const viewLiveBtn = document.getElementById('timeseriesViewLiveBtn');
+    const toggleBtn = document.getElementById('toggleTimeseriesHistoricalBtn');
+    const cancelBtn = document.getElementById('timeseriesCancelBtn');
+    const datePicker = document.getElementById('compactTimeseriesDatePicker');
+
+    if (!dateInput || !viewDayBtn || !viewLiveBtn || !toggleBtn) return;
+
+    // Configurar límites de fecha
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.max = today;
+    dateInput.value = today;
+
+    // Event listeners
+    toggleBtn.addEventListener('click', () => {
+        if (datePicker.style.display === 'none' || !datePicker.style.display) {
+            datePicker.style.display = 'flex';
+            dateInput.focus();
+        } else {
+            datePicker.style.display = 'none';
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        datePicker.style.display = 'none';
+    });
+
+    viewDayBtn.addEventListener('click', async () => {
+        const selectedDate = dateInput.value;
+        if (selectedDate) {
+            datePicker.style.display = 'none';
+            await switchTimeseriesToHistoricalMode(selectedDate);
+        }
+    });
+
+    viewLiveBtn.addEventListener('click', () => {
+        switchTimeseriesToLiveMode();
+    });
+
+    // Enter key en input
+    dateInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            viewDayBtn.click();
+        }
+    });
+
+    // Cerrar selector si se hace clic fuera
+    document.addEventListener('click', (e) => {
+        if (!datePicker.contains(e.target) && !toggleBtn.contains(e.target)) {
+            datePicker.style.display = 'none';
+        }
+    });
+}
+
+async function switchTimeseriesToHistoricalMode(date) {
+    const modeLabel = document.getElementById('timeseriesModeLabel');
+    const subtitle = document.getElementById('timeseriesSubtitle');
+    const toggleBtn = document.getElementById('toggleTimeseriesHistoricalBtn');
+    const viewLiveBtn = document.getElementById('timeseriesViewLiveBtn');
+
+    // Obtener datos históricos del día
+    console.log(`🔍 Solicitando datos históricos para series temporales: ${date}`);
+    const data = await getDailyStats(date);
+
+    if (!data || !data.available) {
+        alert('No hay datos disponibles para esta fecha.');
+        return;
+    }
+
+    // Actualizar estado
+    state.timeseriesMode = 'historical';
+    state.currentTimeseriesDate = date;
+
+    // Actualizar UI
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    modeLabel.textContent = 'Histórico';
+    modeLabel.style.color = '#f39c12';
+
+    subtitle.textContent = `${dayNames[dateObj.getDay()]}, ${dateObj.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })}`;
+
+    if (toggleBtn) toggleBtn.style.display = 'none';
+    if (viewLiveBtn) viewLiveBtn.style.display = 'flex';
+
+    // Limpiar datos actuales y crear nueva serie temporal basada en datos históricos
+    state.timeSeriesData = [];
+
+    // Crear puntos de datos basados en estadísticas históricas
+    // Simulamos una distribución temporal del día
+    const byTrainType = data.byTrainType;
+    const baseTime = new Date(date + 'T06:00:00').getTime(); // Empezar a las 6 AM
+    const pointCount = 48; // Un punto cada 30 minutos (24 horas)
+
+    for (let i = 0; i < pointCount; i++) {
+        const timestamp = baseTime + (i * 30 * 60 * 1000); // Cada 30 minutos
+        const dataPoint = { timestamp };
+
+        Object.entries(byTrainType).forEach(([type, stats]) => {
+            // Añadir variación aleatoria pequeña para simular fluctuación
+            const variation = (Math.random() - 0.5) * 2; // ±1 minuto
+            dataPoint[type] = Math.max(0, parseFloat(stats.avgDelay) + variation);
+        });
+
+        state.timeSeriesData.push(dataPoint);
+    }
+
+    // Actualizar gráfico
+    updateTimeSeriesChart();
+}
+
+function switchTimeseriesToLiveMode() {
+    const modeLabel = document.getElementById('timeseriesModeLabel');
+    const subtitle = document.getElementById('timeseriesSubtitle');
+    const toggleBtn = document.getElementById('toggleTimeseriesHistoricalBtn');
+    const viewLiveBtn = document.getElementById('timeseriesViewLiveBtn');
+
+    // Actualizar estado
+    state.timeseriesMode = 'live';
+    state.currentTimeseriesDate = null;
+
+    // Actualizar UI
+    modeLabel.textContent = 'en Vivo';
+    modeLabel.style.color = '';
+
+    subtitle.textContent = 'Evolución histórica del retraso medio por tipo de tren durante la sesión';
+
+    if (toggleBtn) toggleBtn.style.display = 'flex';
+    if (viewLiveBtn) viewLiveBtn.style.display = 'none';
+
+    // Limpiar datos históricos y volver a cargar desde localStorage
+    loadTimeSeriesFromStorage();
+    updateTimeSeriesChart();
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -2062,6 +2696,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTimeSeriesFromStorage();
     loadStationsData();
     initMap();
+    setupDashboardDateSelector(); // Configurar selector de fecha del dashboard
+    setupTimeseriesDateSelector(); // Configurar selector de fecha de series temporales
     initHistoryDB().then(() => startPolling());
 
 
