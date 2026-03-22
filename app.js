@@ -370,6 +370,11 @@ function loadTimeSeriesFromStorage() {
         if (data) {
             state.timeSeriesData = JSON.parse(data);
 
+            // Filtrar datos inválidos (sin byType o formato incorrecto)
+            state.timeSeriesData = state.timeSeriesData.filter(d =>
+                d && d.byType && typeof d.byType === 'object'
+            );
+
             // Migración: Eliminar datos con tipos "Unknown" antiguos
             // Si hay muchos "Unknown", probablemente son datos viejos con códigos no mapeados
             const unknownCount = state.timeSeriesData.filter(d =>
@@ -385,6 +390,8 @@ function loadTimeSeriesFromStorage() {
         }
     } catch (e) {
         console.warn('Failed to load from localStorage:', e);
+        state.timeSeriesData = [];
+        localStorage.removeItem('renfe_timeseries');
     }
 }
 
@@ -661,7 +668,9 @@ function updateTimeSeries() {
     const typeToggles = document.getElementById('typeToggles');
     const allTypes = new Set();
     state.timeSeriesData.forEach(dp => {
-        Object.keys(dp.byType).forEach(type => allTypes.add(type));
+        if (dp.byType && typeof dp.byType === 'object') {
+            Object.keys(dp.byType).forEach(type => allTypes.add(type));
+        }
     });
 
     // Add new type toggles (supports types appearing after first update)
@@ -686,10 +695,12 @@ function updateTimeSeriesChart() {
         .map(cb => cb.dataset.type);
 
     const datasets = enabledTypes.map(type => {
-        const data = state.timeSeriesData.map(dp => ({
-            x: dp.timestamp,
-            y: dp.byType[type] || 0
-        }));
+        const data = state.timeSeriesData
+            .filter(dp => dp && dp.byType)
+            .map(dp => ({
+                x: dp.timestamp,
+                y: dp.byType[type] || 0
+            }));
 
         return {
             label: type,
@@ -774,8 +785,10 @@ function updateTimeSeriesStats(enabledTypes) {
         : 0;
 
     const cards = enabledTypes.map(type => {
-        const values = state.timeSeriesData.map(dp => dp.byType[type] || 0);
-        if (values.every(v => v === 0)) return null;
+        const values = state.timeSeriesData
+            .filter(dp => dp && dp.byType)
+            .map(dp => dp.byType[type] || 0);
+        if (values.length === 0 || values.every(v => v === 0)) return null;
 
         const current = values[values.length - 1];
         const prev    = values.length > 1 ? values[values.length - 2] : current;
@@ -1793,7 +1806,9 @@ function exportTimeSeriesCSV() {
     // Get all unique train types
     const allTypes = new Set();
     state.timeSeriesData.forEach(dp => {
-        Object.keys(dp.byType).forEach(type => allTypes.add(type));
+        if (dp && dp.byType && typeof dp.byType === 'object') {
+            Object.keys(dp.byType).forEach(type => allTypes.add(type));
+        }
     });
     const types = Array.from(allTypes).sort();
 
@@ -1802,6 +1817,8 @@ function exportTimeSeriesCSV() {
 
     // CSV rows
     state.timeSeriesData.forEach(dp => {
+        if (!dp || !dp.byType) return;
+
         const date = new Date(dp.timestamp);
         const dateStr = date.toLocaleDateString('es-ES');
         const timeStr = date.toLocaleTimeString('es-ES');
